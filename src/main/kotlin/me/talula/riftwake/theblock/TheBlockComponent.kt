@@ -8,7 +8,6 @@ import me.talula.riftwake.utils.pow
 import me.talula.riftwake.utils.setData
 import org.bukkit.Location
 import org.bukkit.Material
-import org.bukkit.NamespacedKey
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.Vector
 import java.util.*
@@ -32,12 +31,13 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         }
 
     inner class UpgradeInfo(
-        val key: String,
+        key: String,
         val weightPerLevel: Double,
         val startCost: Int,
         val costPower: Double,
     ) {
-        var level = player.getData("block-upgrades." + key, PersistentDataType.INTEGER) ?: 0
+        val dataKey = "block-upgrades." + key
+        var level = player.getData(dataKey, PersistentDataType.INTEGER) ?: 0
         val currentWeight: Double
             get() = weightPerLevel * level
     }
@@ -130,8 +130,8 @@ class TheBlockComponent(val player: RiftwakePlayer) {
     fun upgrade(block: Material) {
         val upgradeInfo = upgrades[block]!!
         upgradeInfo.level++
-        blockTable.remove(block);
+        blockTable.remove(block)
         blockTable.add(block, upgradeInfo.currentWeight)
-        player.setData(upgradeInfo.key, PersistentDataType.INTEGER, upgradeInfo.level)
+        player.setData(upgradeInfo.dataKey, PersistentDataType.INTEGER, upgradeInfo.level)
     }
 }

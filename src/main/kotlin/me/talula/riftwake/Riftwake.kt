@@ -1,12 +1,12 @@
 package me.talula.riftwake
 
 import com.github.retrooper.packetevents.PacketEvents
-import com.github.retrooper.packetevents.PacketEventsAPI
 import com.github.retrooper.packetevents.event.PacketListener
 import com.github.retrooper.packetevents.event.PacketListenerPriority
 import com.github.retrooper.packetevents.event.PacketReceiveEvent
 import com.github.retrooper.packetevents.protocol.packettype.PacketType
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity
+import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
@@ -15,6 +15,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import me.talula.riftwake.dialogue.PlaceBlockStage
 import me.talula.riftwake.theblock.TheBlockUpgradeGUI
 import me.talula.riftwake.utils.InventoryGUI
+import me.talula.riftwake.utils.getData
 import me.talula.riftwake.utils.green
 import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.riftwake
@@ -30,6 +31,7 @@ import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.player.PlayerToggleSneakEvent
+import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 
@@ -60,6 +62,78 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
         server.pluginManager.registerEvents(this, this)
         PacketEvents.getAPI().eventManager.registerListener(this, PacketListenerPriority.NORMAL)
+
+        registerCommand(Commands.literal("pdc")
+            .requires { ctx -> ctx.sender.isOp }
+            .then(Commands.literal("clear")
+                .executes { ctx ->
+                    val player = ctx.source.sender as? Player ?: return@executes 0
+                    for (key in player.persistentDataContainer.keys)
+                        if (key.namespace == "riftwake")
+                            player.persistentDataContainer.remove(key)
+                    player.sendMessage("Riftwake player data cleared.".green())
+                    1
+                }
+            )
+            .then(Commands.literal("get")
+                .then(Commands.argument("key", StringArgumentType.string())
+                    .suggests { ctx, builder ->
+                        val player = ctx.source.sender as? Player ?: return@suggests builder.buildFuture()
+                        for (key in player.persistentDataContainer.keys)
+                            if (key.namespace == "riftwake")
+                                builder.suggest(key.key)
+                        builder.buildFuture()
+                    }
+                    .then(Commands.argument("type", StringArgumentType.string())
+                        .suggests { _, builder ->
+                            builder.suggest("byte")
+                            builder.suggest("short")
+                            builder.suggest("int")
+                            builder.suggest("long")
+                            builder.suggest("float")
+                            builder.suggest("double")
+                            builder.suggest("bool")
+                            builder.suggest("string")
+                            builder.suggest("byte[]")
+                            builder.suggest("int[]")
+                            builder.suggest("long[]")
+                            builder.buildFuture()
+                        }
+                        .executes { ctx ->
+                            val player = ctx.source.sender as? Player ?: return@executes 0
+                            val key = ctx.getArgument("key", String::class.java)
+                            val type = when (ctx.getArgument("type", String::class.java)) {
+                                "byte" -> PersistentDataType.BYTE
+                                "short" -> PersistentDataType.SHORT
+                                "int" -> PersistentDataType.INTEGER
+                                "long" -> PersistentDataType.LONG
+                                "float" -> PersistentDataType.FLOAT
+                                "double" -> PersistentDataType.DOUBLE
+                                "bool" -> PersistentDataType.BOOLEAN
+                                "string" -> PersistentDataType.STRING
+                                "byte[]" -> PersistentDataType.BYTE_ARRAY
+                                "int[]" -> PersistentDataType.INTEGER_ARRAY
+                                "long[]" -> PersistentDataType.LONG_ARRAY
+                                else -> {
+                                    player.sendMessage("Not a valid type.".red())
+                                    return@executes 0
+                                }
+                            }
+                            val value = player.getData(key, type)
+                            if (value == null) {
+                                player.sendMessage("No data found".red())
+                                return@executes 0
+                            }
+                            if (value is Array<*>)
+                                player.sendMessage((key + "=" + value.contentToString()).green())
+                            else
+                                player.sendMessage((key + "=" + value.toString()).green())
+                            1
+                        }
+                    )
+                )
+            )
+        )
 
         registerCommand(Commands.literal("createblock")
             .executes { ctx ->

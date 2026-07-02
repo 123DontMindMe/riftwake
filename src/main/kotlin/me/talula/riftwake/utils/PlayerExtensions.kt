@@ -38,7 +38,7 @@ fun <P: Any, C: Any> Player.setData(key: String, type: PersistentDataType<P, C>,
 }
 
 fun Player.sendPacket(packet: PacketWrapper<*>) {
-    PacketEvents.getAPI().playerManager.sendPacket(this, packet)
+    PacketEvents.getAPI().playerManager.sendPacket(craft(), packet)
 }
 
 val Player.cursorLocation: Location
