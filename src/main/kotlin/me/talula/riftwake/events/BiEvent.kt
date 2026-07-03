@@ -9,18 +9,18 @@ class BiEvent<T, U> {
     private var isInvoking = false
     private var newListeners: SequencedSet<BiConsumer<T, U>>? = null
 
-    fun addListener(listener: BiConsumer<T, U>): BiConsumer<T, U> {
+    operator fun plusAssign(listener: BiConsumer<T, U>) {
         if (isInvoking) {
             if (newListeners == null)
                 newListeners = LinkedHashSet(listeners)
             newListeners!!.add(listener)
-            return listener
+            return
         }
         listeners.add(listener)
-        return listener
+        return
     }
 
-    fun removeListener(listener: BiConsumer<T, U>) {
+    operator fun minusAssign(listener: BiConsumer<T, U>) {
         if (isInvoking) {
             if (newListeners == null)
                 newListeners = LinkedHashSet(listeners)
@@ -30,7 +30,7 @@ class BiEvent<T, U> {
         listeners.remove(listener)
     }
 
-    fun invoke(arg1: T, arg2: U) {
+    operator fun invoke(arg1: T, arg2: U) {
         isInvoking = true
         for (listener in listeners) {
             if (newListeners?.contains(listener) == true)

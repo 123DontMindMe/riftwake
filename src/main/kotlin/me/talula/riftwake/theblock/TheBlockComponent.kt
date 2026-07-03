@@ -97,10 +97,10 @@ class TheBlockComponent(val player: RiftwakePlayer) {
             startCost = 16,
             costPower = 1.05)
 
-        player.onBreakBlock.addListener { event ->
-            val blockLocation = blockLocation ?: return@addListener
+        player.onBreakBlock += blockBreak@{ event ->
+            val blockLocation = blockLocation ?: return@blockBreak
             if (event.block.location != blockLocation)
-                return@addListener
+                return@blockBreak
             event.isDropItems = false
             // even though RiftwakePlayer delegates to Player, some Paper methods like this one explicitly
             // cast the Player to a CraftPlayer (which a RiftwakePlayer obviously isn't), hence passing in

@@ -1,5 +1,7 @@
 package me.talula.riftwake.utils
 
+import com.mojang.brigadier.Message
+import io.papermc.paper.command.brigadier.MessageComponentSerializer
 import me.talula.riftwake.Riftwake
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
@@ -18,6 +20,9 @@ import kotlin.Int
 import kotlin.collections.ArrayList
 import kotlin.collections.MutableList
 import kotlin.collections.indices
+
+fun Component.toMessage(): Message = MessageComponentSerializer.message().serialize(this)
+fun String.toMessage(): Message = Component.text(this).toMessage()
 
 operator fun Component.plus(other: Component): Component {
     return this.append(other)
@@ -271,7 +276,7 @@ object Components {
     fun line(line: String, vararg args: Any): TextComponent {
         var line = line
         for (arg in args) {
-            Riftwake.instance.componentLogger.info("{}", arg.toString());
+            Riftwake.instance.componentLogger.info("{}", arg.toString())
             val placeholderIndex = line.indexOf("<>")
             line = line.substring(0, placeholderIndex) + arg.toString() + line.substring(placeholderIndex + 2)
         }
@@ -413,8 +418,8 @@ object Components {
     }
 }
 
-fun String.bold(string: String): TextComponent {
-    return Component.text(string).decorate(TextDecoration.BOLD)
+fun Component.bold(): Component {
+    return this.decorate(TextDecoration.BOLD)
 }
 
 fun String.black(): TextComponent {

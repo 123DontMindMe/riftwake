@@ -12,28 +12,23 @@ import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
 import io.papermc.paper.event.player.AsyncChatEvent
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
+import me.talula.riftwake.constants.Constant
 import me.talula.riftwake.dialogue.PlaceBlockStage
-import me.talula.riftwake.theblock.TheBlockUpgradeGUI
-import me.talula.riftwake.utils.InventoryGUI
-import me.talula.riftwake.utils.getData
-import me.talula.riftwake.utils.green
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.riftwake
+import me.talula.riftwake.theblock.MiningUpgradeGUI
+import me.talula.riftwake.utils.*
 import org.bukkit.Bukkit
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.inventory.InventoryClickEvent
-import org.bukkit.event.player.PlayerInteractEntityEvent
-import org.bukkit.event.player.PlayerInteractEvent
-import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerMoveEvent
-import org.bukkit.event.player.PlayerQuitEvent
-import org.bukkit.event.player.PlayerToggleSneakEvent
+import org.bukkit.event.player.*
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
+import java.io.File
 
 
 class Riftwake : JavaPlugin(), Listener, PacketListener {
@@ -51,6 +46,16 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
         fun runTaskTimer(delay: Long, interval: Long, task: (BukkitTask) -> Unit) {
             Bukkit.getScheduler().runTaskTimer(instance, task, delay, interval)
+        }
+
+        fun broadcastToOperators(message: String) {
+            for (player in Bukkit.getOnlinePlayers())
+                if (player.isOp)
+                    player.sendMessage(message)
+        }
+
+        fun getConfig(pathInDataFolder: String): YamlConfiguration {
+            return YamlConfiguration.loadConfiguration(File(instance.dataFolder, pathInDataFolder))
         }
     }
 
@@ -154,10 +159,12 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         registerCommand(Commands.literal("blockmenu")
             .executes { ctx ->
                 val player = ctx.source.sender.riftwake() ?: return@executes 0
-                TheBlockUpgradeGUI(player).open()
+                MiningUpgradeGUI(player).open()
                 1
             }
         )
+
+        Constant.init()
     }
 
     override fun onDisable() {
@@ -193,18 +200,22 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
     @EventHandler
     fun onPlayerMove(event: PlayerMoveEvent) {
-        playerRegistry[event.player]?.onMove?.invoke(event)
+        playerRegistry[event.player]?.onMove(event)
     }
 
     @EventHandler
     fun onPlayerInteractEntity(event: PlayerInteractEntityEvent) {
         componentLogger.info("{}", event.rightClicked)
-        playerRegistry[event.player]?.onRightClickEntity?.invoke(event)
+        playerRegistry[event.player]?.onRightClickEntity(event)
     }
 
     @EventHandler
     fun onPlayerInteract(event: PlayerInteractEvent) {
         val player = playerRegistry[event.player] ?: return
+        if (event.action == Action.PHYSICAL) {
+            player.onPhysicalInteract(event)
+            return
+        }
         if (!event.action.isRightClick)
             return
 
@@ -213,35 +224,29 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
         if (item == null) {
             if (clickedBlock != null)
-                player.onRightClickBlock.invoke(event, clickedBlock)
+                player.onRightClickBlock(event, clickedBlock)
             return
         }
         if (clickedBlock != null)
-            player.onRightClickBlock.invoke(event, clickedBlock)
+            player.onRightClickBlock(event, clickedBlock)
         else
-            player.onRightClickItem.invoke(event, item)
+            player.onRightClickItem(event, item)
     }
 
     @EventHandler
-    fun onPlayerSendMessage(event: AsyncChatEvent) {
-        playerRegistry[event.player]?.onSendMessage?.invoke(event)
-    }
+    fun onPlayerSendMessage(event: AsyncChatEvent) = playerRegistry[event.player]?.onSendMessage(event)
 
     @EventHandler
-    fun onPlayerToggleSneak(event: PlayerToggleSneakEvent) {
-        playerRegistry[event.player]?.onToggleSneak?.invoke(event)
-    }
+    fun onPlayerToggleSneak(event: PlayerToggleSneakEvent) = playerRegistry[event.player]?.onToggleSneak(event)
 
     @EventHandler
-    fun onPlayerBreakBlock(event: BlockBreakEvent) {
-        playerRegistry[event.player]?.onBreakBlock?.invoke(event)
-    }
+    fun onPlayerBreakBlock(event: BlockBreakEvent) = playerRegistry[event.player]?.onBreakBlock(event)
 
     override fun onPacketReceive(event: PacketReceiveEvent) {
         if (event.packetType == PacketType.Play.Client.INTERACT_ENTITY) {
             val packet = WrapperPlayClientInteractEntity(event)
             componentLogger.info("{}", packet.action)
-            playerRegistry[event.getPlayer()]?.onRightClickPacketEntity?.invoke(packet)
+            playerRegistry[event.getPlayer()]?.onRightClickPacketEntity(packet)
         }
     }
 

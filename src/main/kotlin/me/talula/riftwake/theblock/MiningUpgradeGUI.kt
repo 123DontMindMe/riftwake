@@ -10,7 +10,6 @@ import me.talula.riftwake.utils.maxPlaces
 import me.talula.riftwake.utils.parseLore
 import me.talula.riftwake.utils.playSound
 import me.talula.riftwake.utils.subtractItem
-import me.talula.riftwake.utils.toFixed
 import net.kyori.adventure.text.Component
 
 import net.kyori.adventure.text.format.NamedTextColor
@@ -21,7 +20,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.event.inventory.InventoryClickEvent
 
 
-class TheBlockUpgradeGUI(player: RiftwakePlayer) : InventoryGUI(player, 6, Component.text("Upgrades")) {
+class MiningUpgradeGUI(player: RiftwakePlayer) : InventoryGUI(player, 6, Component.text("Upgrades")) {
     init {
         val stone = UpgradeButton(
             index=49,

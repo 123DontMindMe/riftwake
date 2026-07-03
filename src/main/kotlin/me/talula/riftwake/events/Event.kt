@@ -9,18 +9,17 @@ class Event<T> {
     private var isInvoking = false
     private var newListeners: SequencedSet<Consumer<T>>? = null
 
-    fun addListener(listener: Consumer<T>): Consumer<T> {
+    operator fun plusAssign(listener: Consumer<T>) {
         if (isInvoking) {
             if (newListeners == null)
                 newListeners = LinkedHashSet(listeners)
             newListeners!!.add(listener)
-            return listener
+            return
         }
         listeners.add(listener)
-        return listener
     }
 
-    fun removeListener(listener: Consumer<T>) {
+    operator fun minusAssign(listener: Consumer<T>) {
         if (isInvoking) {
             if (newListeners == null)
                 newListeners = LinkedHashSet(listeners)
@@ -30,7 +29,7 @@ class Event<T> {
         listeners.remove(listener)
     }
 
-    fun invoke(event: T) {
+    operator fun invoke(event: T) {
         isInvoking = true
         for (listener in listeners) {
             if (newListeners?.contains(listener) == true)

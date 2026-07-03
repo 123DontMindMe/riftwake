@@ -6,6 +6,7 @@ import me.talula.riftwake.dialogue.DialogueComponent
 import me.talula.riftwake.events.BiEvent
 import me.talula.riftwake.events.Event
 import me.talula.riftwake.events.RemoveReason
+import me.talula.riftwake.spawn.SpawnComponent
 import me.talula.riftwake.theblock.TheBlockComponent
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
@@ -19,6 +20,7 @@ import org.bukkit.inventory.ItemStack
 class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val onRemove = Event<RemoveReason>()
     val onMove = Event<PlayerMoveEvent>()
+    val onPhysicalInteract = Event<PlayerInteractEvent>()
     val onRightClickEntity = Event<PlayerInteractEntityEvent>()
     val onRightClickPacketEntity = Event<WrapperPlayClientInteractEntity>()
     val onRightClickBlock = BiEvent<PlayerInteractEvent, Block>()
@@ -29,4 +31,5 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
 
     val dialogue = DialogueComponent(this)
     val block = TheBlockComponent(this)
+    val spawn = SpawnComponent(this)
 }

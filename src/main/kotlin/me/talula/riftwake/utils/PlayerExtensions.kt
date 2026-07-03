@@ -107,5 +107,5 @@ fun Player.subtractItem(material: Material, amount: Int): Boolean {
 }
 
 fun Player.playSound(sound: Sound, category: SoundCategory, volume: Float, pitch: Float) {
-    this.world.playSound(craft(), sound, category, volume, pitch)
+    playSound(craft(), sound, category, volume, pitch)
 }

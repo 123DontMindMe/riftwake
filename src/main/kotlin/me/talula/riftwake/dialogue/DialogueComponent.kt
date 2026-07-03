@@ -12,13 +12,13 @@ class DialogueComponent(val player: RiftwakePlayer) {
         get() = stages?.get(stageIndex)
 
     init {
-        player.onRemove.addListener { stages?.forEach { it.cleanUp() } }
-        player.onMove.addListener { event -> currentStage?.onMove(event) }
-        player.onRightClickEntity.addListener { event -> currentStage?.onRightClickEntity(event) }
-        player.onRightClickPacketEntity.addListener { event -> currentStage?.onRightClickPacketEntity(event) }
-        player.onRightClickBlock.addListener { event, block -> currentStage?.onRightClickBlock(event, block) }
-        player.onRightClickItem.addListener { event, item -> currentStage?.onRightClickItem(event, item) }
-        player.onSendMessage.addListener { event -> currentStage?.onSendMessage(event) }
+        player.onRemove += { stages?.forEach { it.cleanUp() } }
+        player.onMove += { event -> currentStage?.onMove(event) }
+        player.onRightClickEntity += { event -> currentStage?.onRightClickEntity(event) }
+        player.onRightClickPacketEntity += { event -> currentStage?.onRightClickPacketEntity(event) }
+        player.onRightClickBlock += { event, block -> currentStage?.onRightClickBlock(event, block) }
+        player.onRightClickItem += { event, item -> currentStage?.onRightClickItem(event, item) }
+        player.onSendMessage += { event -> currentStage?.onSendMessage(event) }
 
 //        player.onRightClickEntity.addListener({ event -> if (state != null) state.onRightClickEntity(event) })
 //        player.onMissAttack.addListener(({ event, item -> if (state != null) state.onLeftClickObject(event) }))
