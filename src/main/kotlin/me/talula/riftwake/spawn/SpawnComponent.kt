@@ -25,24 +25,36 @@ class SpawnComponent(val player: RiftwakePlayer) {
             val direction = when (block.location.toVector()) {
                 Vector(-1, 99, -20),
                 Vector(0, 99, -20),
-                Vector(+1, 99, -20) -> BlockFace.NORTH.direction
+                Vector(+1, 99, -20),
+                Vector(-1, 101, 48),
+                Vector(0, 101, 48),
+                Vector(+1, 101, 48) -> BlockFace.NORTH.direction
 
                 Vector(-1, 99, 20),
                 Vector(0, 99, 20),
-                Vector(+1, 99, 20) -> BlockFace.SOUTH.direction
+                Vector(+1, 99, 20),
+                Vector(-1, 101, -48),
+                Vector(0, 101, -48),
+                Vector(+1, 101, -48) -> BlockFace.SOUTH.direction
 
                 Vector(20, 99, -1),
                 Vector(20, 99, 0),
-                Vector(20, 99, +1) -> BlockFace.EAST.direction
+                Vector(20, 99, +1),
+                Vector(-48, 101, -1),
+                Vector(-48, 101, 0),
+                Vector(-48, 101, +1) -> BlockFace.EAST.direction
 
                 Vector(-20, 99, -1),
                 Vector(-20, 99, 0),
-                Vector(-20, 99, +1) -> BlockFace.WEST.direction
+                Vector(-20, 99, +1),
+                Vector(48, 101, -1),
+                Vector(48, 101, 0),
+                Vector(48, 101, +1) -> BlockFace.WEST.direction
 
                 else -> return@launch
             }
 
-            player.playSound(Sound.ENTITY_BREEZE_JUMP, SoundCategory.MASTER, 1f, 0.5f)
+            player.playSound(Sound.ENTITY_BREEZE_JUMP, SoundCategory.BLOCKS, 1f, 0.5f)
             player.velocity = direction.plus(0.0, launchVerticalSpeed(), 0.0)
             var t = launchDuration()
             Riftwake.runTaskTimer(0, 1) { task ->

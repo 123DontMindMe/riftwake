@@ -10,27 +10,30 @@ class RandomTable<E> {
     var totalWeight: Double = 0.0
         private set
 
-    fun add(value: E, weight: Double): RandomTable<E> {
-        this.totalWeight += weight
-        distribution[this.totalWeight] = value
-        entries.add(Entry(value, weight))
-        return this
+    constructor(vararg entries: Pair<E, Double>) {
+        for ((value, weight) in entries)
+            add(value, weight)
     }
 
-    fun add(value: E, weight: Double, index: Int): RandomTable<E> {
-        this.totalWeight += weight
-        distribution[this.totalWeight] = value
+    fun add(value: E, weight: Double) {
+        totalWeight += weight
+        distribution[totalWeight] = value
+        entries.add(Entry(value, weight))
+    }
+
+    fun add(value: E, weight: Double, index: Int) {
+        totalWeight += weight
+        distribution[totalWeight] = value
         entries.add(index, Entry(value, weight))
-        return this
     }
 
     fun remove(index: Int): Entry {
         distribution.clear()
-        this.totalWeight = 0.0
+        totalWeight = 0.0
         val removedEntry = entries.removeAt(index)
         for (entry in entries) {
-            this.totalWeight += entry.weight
-            distribution[this.totalWeight] = entry.value
+            totalWeight += entry.weight
+            distribution[totalWeight] = entry.value
         }
         return removedEntry
     }
@@ -42,14 +45,19 @@ class RandomTable<E> {
         return remove(index)
     }
 
-    fun get(index: Int): Entry {
+    operator fun get(index: Int): Entry {
         return entries[index]
+    }
+
+    operator fun set(value: E, weight: Double) {
+        remove(value)
+        add(value, weight)
     }
 
     fun pull(): E {
         if (isEmpty)
             throw IllegalStateException("Can't pull from empty table")
-        return distribution.higherEntry(Math.random() * this.totalWeight).value
+        return distribution.higherEntry(Math.random() * totalWeight).value
     }
 
     val size: Int

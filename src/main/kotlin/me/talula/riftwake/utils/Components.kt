@@ -2,7 +2,6 @@ package me.talula.riftwake.utils
 
 import com.mojang.brigadier.Message
 import io.papermc.paper.command.brigadier.MessageComponentSerializer
-import me.talula.riftwake.Riftwake
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.TranslatableComponent
@@ -20,6 +19,24 @@ import kotlin.Int
 import kotlin.collections.ArrayList
 import kotlin.collections.MutableList
 import kotlin.collections.indices
+
+fun List<Component>.andJoin(): Component {
+    if (isEmpty())
+        return "".comp()
+    if (size == 1)
+        return get(0)
+    if (size == 2)
+        return get(0).append(" and ".comp()).append(get(1))
+    val builder = Component.text()
+    for ((index, component) in this.withIndex()) {
+        builder.append(component)
+        if (index < size - 2)
+            builder.append(", ".comp())
+        else if (index == size - 2)
+            builder.append(", and ".comp())
+    }
+    return builder.build()
+}
 
 fun Component.toMessage(): Message = MessageComponentSerializer.message().serialize(this)
 fun String.toMessage(): Message = Component.text(this).toMessage()
@@ -46,6 +63,14 @@ fun String.parseLore(vararg args: Any): Component {
 
 fun String.parse(vararg args: Any): Component {
     return Components.line(this, *args)
+}
+
+fun String.comp(): Component {
+    return Component.text(this)
+}
+
+fun String.lore(): Component {
+    return Component.text(this).decoration(TextDecoration.ITALIC, false).color(NamedTextColor.GRAY)
 }
 
 fun String.bold(): Component {
@@ -276,7 +301,6 @@ object Components {
     fun line(line: String, vararg args: Any): TextComponent {
         var line = line
         for (arg in args) {
-            Riftwake.instance.componentLogger.info("{}", arg.toString())
             val placeholderIndex = line.indexOf("<>")
             line = line.substring(0, placeholderIndex) + arg.toString() + line.substring(placeholderIndex + 2)
         }

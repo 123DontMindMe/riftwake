@@ -2,13 +2,12 @@ package me.talula.riftwake.theblock
 
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.utils.comp
-
 import org.bukkit.event.inventory.InventoryClickEvent
 
 
-class MiningUpgradeGUI(player: RiftwakePlayer): AbstractUpgradeGUI(player, 6, "Upgrades » Mining".comp()) {
+class FarmingUpgradeGUI(player: RiftwakePlayer): AbstractUpgradeGUI(player, 6, "Upgrades » Farming".comp()) {
     init {
-        for (upgrade in UpgradeRegistry.miningUpgrades.values)
+        for (upgrade in UpgradeRegistry.farmingUpgrades.values)
             UpgradeButton(upgrade)
         fillEmpty()
     }

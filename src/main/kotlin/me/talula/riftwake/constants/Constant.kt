@@ -3,13 +3,12 @@ package me.talula.riftwake.constants
 import com.mojang.brigadier.arguments.StringArgumentType
 import io.papermc.paper.command.brigadier.Commands
 import me.talula.riftwake.Riftwake
+import me.talula.riftwake.utils.ConfigurationException
 import me.talula.riftwake.utils.green
 import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.toMessage
 
 abstract class Constant<T>(val name: String, val type: String) {
-    class ConfigurationException(override val message: String): Exception(message)
-
     companion object {
         val constants = mutableMapOf<String, Constant<*>>()
         val file = Riftwake.getConfig("config.yml")
@@ -17,6 +16,13 @@ abstract class Constant<T>(val name: String, val type: String) {
         fun init() {
             Riftwake.instance.registerCommand(Commands.literal("config")
                 .requires { ctx -> ctx.sender.isOp }
+                .then(Commands.literal("save")
+                    .executes { ctx ->
+                        Riftwake.saveConfig(file, "config.yml")
+                        ctx.source.sender.sendMessage("Config values saved to file.".green())
+                        1
+                    }
+                )
                 .then(Commands.literal("reload")
                     .executes { ctx ->
                         for ((name, constant) in constants) {
@@ -100,3 +106,4 @@ abstract class Constant<T>(val name: String, val type: String) {
     abstract fun serialize(): String
     abstract fun deserialize(value: String): T?
 }
+

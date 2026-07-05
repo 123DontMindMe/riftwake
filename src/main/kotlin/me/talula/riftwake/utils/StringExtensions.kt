@@ -9,3 +9,7 @@ fun Double.maxPlaces(decimals: Int): String {
 fun Double.toFixed(decimals: Int): String {
     return String.format("%.${decimals}f", this)
 }
+
+fun Int.plural(singular: String, plural: String? = null): String {
+    return "$this ${(if (this == 1) singular else (plural ?: "${singular}s"))}"
+}

@@ -7,6 +7,7 @@ import me.talula.riftwake.RiftwakePlayer
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.OfflinePlayer
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
 import org.bukkit.command.CommandSender
@@ -15,13 +16,9 @@ import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 
-fun Player.riftwake(): RiftwakePlayer? {
-    return Riftwake.instance.playerRegistry[this]
-}
-
-fun CommandSender.riftwake() : RiftwakePlayer? {
-    return (this as Player?)?.riftwake()
-}
+fun OfflinePlayer.riftwake(): RiftwakePlayer? = Riftwake.playerRegistry[this]
+fun RiftwakePlayer.riftwake(): RiftwakePlayer = this
+fun CommandSender.riftwake() : RiftwakePlayer? = (this as OfflinePlayer?)?.riftwake()
 
 // should use when passing in a potential RiftwakePlayer into a Paper method, since it usually
 // attempts to cast it to a CraftPlayer
@@ -33,8 +30,11 @@ fun <P: Any, C: Any> Player.getData(key: String, type: PersistentDataType<P, C>)
     return persistentDataContainer.get(NamespacedKey("riftwake", key), type)
 }
 
-fun <P: Any, C: Any> Player.setData(key: String, type: PersistentDataType<P, C>, value: C) {
-    persistentDataContainer.set(NamespacedKey("riftwake", key), type, value)
+fun <P: Any, C: Any> Player.setData(key: String, type: PersistentDataType<P, C>, value: C?) {
+    if (value == null)
+        persistentDataContainer.remove(NamespacedKey("riftwake", key))
+    else
+        persistentDataContainer.set(NamespacedKey("riftwake", key), type, value)
 }
 
 fun Player.sendPacket(packet: PacketWrapper<*>) {

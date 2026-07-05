@@ -3,28 +3,19 @@ package me.talula.riftwake.utils
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.logger.slf4j.ComponentLogger
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
-import org.bukkit.Server
 import org.bukkit.attribute.Attribute
 import org.bukkit.attribute.AttributeModifier
-import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.inventory.*
-import org.bukkit.inventory.meta.ItemMeta
-import org.bukkit.scheduler.BukkitScheduler
 import java.util.function.Consumer
 
-abstract class InventoryGUI(protected val player: RiftwakePlayer, numRows: Int, title: Component) : InventoryHolder {
+abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Component) : InventoryHolder {
     val numSlots = numRows * 9
-    val plugin = Riftwake.instance
-    val server = plugin.server
-    val logger = plugin.componentLogger
-    val scheduler = server.scheduler
-    private val inventory = server.createInventory(this, numSlots, title)
+    private val inventory = Riftwake.server.createInventory(this, numSlots, title)
 
     private val buttons = arrayOfNulls<Button?>(numSlots)
 
@@ -124,6 +115,10 @@ abstract class InventoryGUI(protected val player: RiftwakePlayer, numRows: Int, 
         abstract fun onClick()
     }
 
+    inner class SimpleButton(index: Int, icon: ItemStack, val onClick: () -> Unit) : Button(index, icon) {
+        override fun onClick() = onClick.invoke()
+    }
+
     open inner class StaticButton(index: Int, icon: ItemStack?) : Button(index, icon) {
         override fun onClick() {}
     }
@@ -135,11 +130,13 @@ abstract class InventoryGUI(protected val player: RiftwakePlayer, numRows: Int, 
         protected var clearIcon = createIcon(null, Material.LIGHT_GRAY_STAINED_GLASS_PANE)
 
         @JvmStatic
-        protected fun createIcon(name: Component?, material: Material): ItemStack {
-            val button = ItemStack.of(material)
-            button.editMeta(Consumer { meta: ItemMeta? ->
-                if (name == null) meta!!.isHideTooltip = true
-                else meta!!.itemName(name)
+        protected fun createIcon(name: Component?, material: Material, amount: Int = 1): ItemStack {
+            val button = ItemStack.of(material, amount)
+            button.editMeta { meta ->
+                if (name == null)
+                    meta.isHideTooltip = true
+                else
+                    meta.itemName(name)
                 meta.addAttributeModifier(
                     Attribute.ATTACK_DAMAGE, AttributeModifier(
                         NamespacedKey("riftwake", "here-to-override-default-modifiers"),
@@ -147,71 +144,50 @@ abstract class InventoryGUI(protected val player: RiftwakePlayer, numRows: Int, 
                     )
                 )
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
-            })
-            return button
-        }
-
-        @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, amount: Int): ItemStack {
-            val button = ItemStack.of(material, amount)
-            button.editMeta(Consumer { meta: ItemMeta? ->
-                meta!!.itemName(name)
                 meta.setMaxStackSize(amount)
-            })
+            }
             return button
         }
 
         @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, vararg loreLines: String): ItemStack {
-            val button = createIcon(name, material)
-            button.lore(Components.loreLines(*loreLines))
-            return button
-        }
-
-        @JvmStatic
-        protected fun createIcon(
-            name: Component?,
-            material: Material,
-            amount: Int,
-            vararg loreLines: String
-        ): ItemStack {
+        protected fun createIcon(name: Component?, material: Material, amount: Int, vararg lore: String): ItemStack {
             val button = createIcon(name, material, amount)
-            button.lore(Components.loreLines(*loreLines))
+            button.lore(Components.loreLines(*lore))
             return button
         }
 
         @JvmStatic
-        protected fun createIcon(
-            name: Component?,
-            material: Material,
-            amount: Int,
-            loreLines: List<Component>
-        ): ItemStack {
-            val button = createIcon(name, material, amount)
-            button.lore(loreLines)
-            return button
-        }
-
-        @JvmStatic
-        protected fun createIcon(
-            name: Component?,
-            material: Material,
-            amount: Int,
-            vararg lore: Component
-        ): ItemStack {
+        protected fun createIcon(name: Component?, material: Material, amount: Int, vararg lore: Component): ItemStack {
             val button = createIcon(name, material, amount)
             button.lore(listOf(*lore))
             return button
         }
 
         @JvmStatic
-        protected fun createIcon(
-            name: Component?,
-            material: Material,
-            loreLines: List<Component>
-        ): ItemStack {
+        protected fun createIcon(name: Component?, material: Material, amount: Int, lore: List<Component>): ItemStack {
+            val button = createIcon(name, material, amount)
+            button.lore(lore)
+            return button
+        }
+
+        @JvmStatic
+        protected fun createIcon(name: Component?, material: Material, vararg lore: String): ItemStack {
+            val button = createIcon(name, material, 1)
+            button.lore(Components.loreLines(*lore))
+            return button
+        }
+
+        @JvmStatic
+        protected fun createIcon(name: Component?, material: Material, vararg lore: Component): ItemStack {
+            val button = createIcon(name, material, 1)
+            button.lore(listOf(*lore))
+            return button
+        }
+
+        @JvmStatic
+        protected fun createIcon(name: Component?, material: Material, lore: List<Component>): ItemStack {
             val button = createIcon(name, material)
-            button.lore(loreLines)
+            button.lore(lore)
             return button
         }
     }

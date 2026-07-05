@@ -1,7 +1,5 @@
 package me.talula.riftwake.dialogue
 
-import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
-import com.github.retrooper.packetevents.resources.ResourceLocation
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity
 import io.papermc.paper.event.player.AsyncChatEvent
 import me.talula.riftwake.Riftwake
@@ -10,6 +8,7 @@ import me.talula.riftwake.temporaries.BlockCoordDisplay
 import me.talula.riftwake.utils.cursorLocation
 import me.talula.riftwake.utils.parse
 import me.talula.riftwake.utils.red
+import me.talula.riftwake.utils.toStateType
 import net.kyori.adventure.text.TextComponent
 import org.bukkit.Location
 import org.bukkit.event.player.PlayerMoveEvent
@@ -26,20 +25,20 @@ class PlaceBlockStage(
     override fun start(player: RiftwakePlayer) {
         this.player = player
         player.sendMessage(
-            ("<YELLOW|Right-click while holding an item to set <>, or type it in chat " +
-            "<GRAY|(e.g., -100 200 -300)>. Left-click to cancel.>").parse(coordsName)
+            ("<yellow|Right-click while holding an item to set <>, or type it in chat " +
+            "<gray|(e.g., -100 200 -300)>. Left-click to cancel.>").parse(coordsName)
         )
 
         cursorDisplay = BlockCoordDisplay(
             player,
-            blockMaterial=StateTypes.getByName(ResourceLocation(player.block.pull().name.lowercase()))!!,
+            blockMaterial=player.block.previewPull().toStateType(),
             player.cursorLocation,
             true)
 
         Riftwake.runTaskTimer(10, 10) {
-            var material = StateTypes.getByName(ResourceLocation(player.block.pull().name.lowercase()))!!
+            var material = player.block.previewPull().toStateType()
             while (cursorDisplay?.material == material)
-                material = StateTypes.getByName(ResourceLocation(player.block.pull().name.lowercase()))!!
+                material = player.block.previewPull().toStateType()
 
             cursorDisplay?.material = material
         }

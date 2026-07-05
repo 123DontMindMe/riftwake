@@ -14,8 +14,10 @@ import io.papermc.paper.event.player.AsyncChatEvent
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import me.talula.riftwake.constants.Constant
 import me.talula.riftwake.dialogue.PlaceBlockStage
-import me.talula.riftwake.theblock.MiningUpgradeGUI
+import me.talula.riftwake.theblock.TheBlockRegistry
+import me.talula.riftwake.theblock.UpgradeMenuGUI
 import me.talula.riftwake.utils.*
+import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
@@ -23,6 +25,8 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockPistonExtendEvent
+import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.player.*
 import org.bukkit.persistence.PersistentDataType
@@ -33,8 +37,12 @@ import java.io.File
 
 class Riftwake : JavaPlugin(), Listener, PacketListener {
     companion object {
-        lateinit var instance: Riftwake
-            private set
+        lateinit var instance: Riftwake private set
+        val world get() = instance.server.getWorld("world") ?: throw RuntimeException("world not found")
+        val logger get() = instance.componentLogger
+        val server get() = instance.server
+
+        val playerRegistry: MutableMap<Player, RiftwakePlayer> = HashMap()
 
         fun runTask(task: (BukkitTask) -> Unit) {
             Bukkit.getScheduler().runTask(instance, task)
@@ -54,12 +62,20 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                     player.sendMessage(message)
         }
 
+        fun broadcastToOperators(message: Component) {
+            for (player in Bukkit.getOnlinePlayers())
+                if (player.isOp)
+                    player.sendMessage(message)
+        }
+
         fun getConfig(pathInDataFolder: String): YamlConfiguration {
             return YamlConfiguration.loadConfiguration(File(instance.dataFolder, pathInDataFolder))
         }
-    }
 
-    val playerRegistry: MutableMap<Player, RiftwakePlayer> = HashMap()
+        fun saveConfig(file: YamlConfiguration, pathInDataFolder: String) {
+            file.save(File(instance.dataFolder, pathInDataFolder))
+        }
+    }
 
     override fun onEnable() {
         instance = this
@@ -89,7 +105,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                                 builder.suggest(key.key)
                         builder.buildFuture()
                     }
-                    .then(Commands.argument("type", StringArgumentType.string())
+                    .then(Commands.argument("type", StringArgumentType.greedyString())
                         .suggests { _, builder ->
                             builder.suggest("byte")
                             builder.suggest("short")
@@ -147,7 +163,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                     cancelMessage = "Block placement cancelled.".red(),
                     PlaceBlockStage("the location of the block") { location ->
                         runTask {  // must be done sync
-                            player.block.blockLocation = location
+                            player.block.setBlockLocation(location)
                             player.sendMessage("Block placed at (${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}).".green())
                         }
                     }
@@ -159,7 +175,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         registerCommand(Commands.literal("blockmenu")
             .executes { ctx ->
                 val player = ctx.source.sender.riftwake() ?: return@executes 0
-                MiningUpgradeGUI(player).open()
+                UpgradeMenuGUI(player).open()
                 1
             }
         )
@@ -168,7 +184,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     }
 
     override fun onDisable() {
-
+        TheBlockRegistry.save()
     }
 
     @EventHandler
@@ -241,6 +257,24 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
     @EventHandler
     fun onPlayerBreakBlock(event: BlockBreakEvent) = playerRegistry[event.player]?.onBreakBlock(event)
+
+    @EventHandler
+    fun onPistonMove(event: BlockPistonExtendEvent) {
+        for (block in event.blocks)
+            if (block in TheBlockRegistry) {
+                event.isCancelled = true
+                return
+            }
+    }
+
+    @EventHandler
+    fun onPistonRetract(event: BlockPistonRetractEvent) {
+        for (block in event.blocks)
+            if (block in TheBlockRegistry) {
+                event.isCancelled = true
+                return
+            }
+    }
 
     override fun onPacketReceive(event: PacketReceiveEvent) {
         if (event.packetType == PacketType.Play.Client.INTERACT_ENTITY) {

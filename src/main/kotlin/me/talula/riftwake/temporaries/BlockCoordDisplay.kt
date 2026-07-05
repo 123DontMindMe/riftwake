@@ -100,7 +100,7 @@ class BlockCoordDisplay(
         player.sendPacket(WrapperPlayServerEntityMetadata(
             textEntityId, listOf(
                 EntityData(23, EntityDataTypes.ADV_COMPONENT,
-                    "<RED|${blockLocation.x.toInt()}> <GREEN|${blockLocation.y.toInt()}> <BLUE|${blockLocation.z.toInt()}>".parse()),
+                    "<red|${blockLocation.x.toInt()}> <green|${blockLocation.y.toInt()}> <blue|${blockLocation.z.toInt()}>".parse()),
             )
         ))
     }
