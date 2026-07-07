@@ -16,12 +16,16 @@ class RandomTable<E> {
     }
 
     fun add(value: E, weight: Double) {
+        if (weight <= 0)
+            return
         totalWeight += weight
         distribution[totalWeight] = value
         entries.add(Entry(value, weight))
     }
 
     fun add(value: E, weight: Double, index: Int) {
+        if (weight <= 0)
+            return
         totalWeight += weight
         distribution[totalWeight] = value
         entries.add(index, Entry(value, weight))

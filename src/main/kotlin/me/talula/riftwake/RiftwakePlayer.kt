@@ -11,6 +11,11 @@ import me.talula.riftwake.theblock.TheBlockComponent
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityPlaceEvent
+import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
@@ -28,6 +33,12 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val onSendMessage = Event<AsyncChatEvent>()
     val onToggleSneak = Event<PlayerToggleSneakEvent>()
     val onBreakBlock = Event<BlockBreakEvent>()
+    val onPlaceBlock = Event<BlockPlaceEvent>()
+    val onPlaceEntity = Event<EntityPlaceEvent>()
+    val onReceiveDamage = Event<EntityDamageEvent>()
+    val onDamageEntity = Event<EntityDamageByEntityEvent>()
+    val onReceiveEntityDamage = Event<EntityDamageByEntityEvent>()
+    val onDropItem = Event<PlayerDropItemEvent>()
 
     val dialogue = DialogueComponent(this)
     val block = TheBlockComponent(this)

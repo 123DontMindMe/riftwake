@@ -3,31 +3,35 @@ package me.talula.riftwake.theblock
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.utils.ConfigurationException
 import me.talula.riftwake.utils.parse
+import me.talula.riftwake.utils.parseLore
 import me.talula.riftwake.utils.plus
 import me.talula.riftwake.utils.pow
 import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.setBlock
 import me.talula.riftwake.utils.setType
 import net.kyori.adventure.text.Component
-import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.TreeType
 import org.bukkit.block.data.Ageable
 import org.bukkit.configuration.ConfigurationSection
+import java.util.Random
 
 object UpgradeRegistry {
     val miningFile = Riftwake.getConfig("mining_upgrades.yml")
     val farmingFile = Riftwake.getConfig("farming_upgrades.yml")
+    val buildingFile = Riftwake.getConfig("building_upgrades.yml")
 
-    val miningUpgrades: Map<String, MiningUpgrade> field = mutableMapOf()
-    val farmingUpgrades: Map<String, FarmingUpgrade> field = mutableMapOf()
+    val miningUpgrades: Map<String, Upgrade> field = mutableMapOf()
+    val farmingUpgrades: Map<String, Upgrade> field = mutableMapOf()
+    val buildingUpgrades: Map<String, Upgrade> field = mutableMapOf()
     val upgrades: Map<String, Upgrade> field = mutableMapOf()
 
     init {
         for (key in miningFile.getKeys(false)) {
             val upgrade = try {
-                MiningUpgrade(key, miningFile.getConfigurationSection(key)!!)
+                readUpgrade(key, miningFile.getConfigurationSection(key)!!)
             } catch (error: ConfigurationException) {
-                Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red())
+                Riftwake.broadcastToOperators(("config error in upgrade '$key': " + error.message).red())
                 continue
             }
             upgrades[key] = upgrade
@@ -35,13 +39,33 @@ object UpgradeRegistry {
         }
         for (key in farmingFile.getKeys(false)) {
             val upgrade = try {
-                FarmingUpgrade(key, farmingFile.getConfigurationSection(key)!!)
+                readUpgrade(key, farmingFile.getConfigurationSection(key)!!)
             } catch (error: ConfigurationException) {
-                Riftwake.broadcastToOperators(error.message.red())
+                Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red())
                 continue
             }
             upgrades[key] = upgrade
             farmingUpgrades[key] = upgrade
+        }
+        for (key in buildingFile.getKeys(false)) {
+            val upgrade = try {
+                readUpgrade(key, buildingFile.getConfigurationSection(key)!!)
+            } catch (error: ConfigurationException) {
+                Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red())
+                continue
+            }
+            upgrades[key] = upgrade
+            buildingUpgrades[key] = upgrade
+        }
+    }
+
+    fun readUpgrade(key: String, data: ConfigurationSection): Upgrade {
+        return when (data.getString("type")) {
+            "GROWTH_CHANCE" -> GrowthChanceUpgrade(key, data)
+            "BLOCK" -> BlockUpgrade(key, data)
+            "CROP" -> CropUpgrade(key, data)
+            "TREE" -> TreeUpgrade(key, data)
+            else -> throw ConfigurationException("Unknown upgrade type $data")
         }
     }
 }
@@ -56,6 +80,7 @@ abstract class Upgrade {
     val startCost: Int
     val costPower: Double
     val name: Component
+    val description: Array<Component>
     val icon: Material
     val slotX: Int
     val slotY: Int
@@ -77,7 +102,7 @@ abstract class Upgrade {
 
         maxLevel = data.getInt("max-level")
         if (maxLevel <= 0)
-            throw ConfigurationException("mssing 'max-level' (or is ≤0)")
+            throw ConfigurationException("missing 'max-level' (or is ≤0)")
 
         weightPerLevel = data.getDouble("chance-per-level")
         if (weightPerLevel <= 0)
@@ -93,6 +118,8 @@ abstract class Upgrade {
 
         name = data.getString("name")?.parse() ?:
             throw ConfigurationException("missing 'name'")
+
+        description = data.getString("description")?.split('\n')?.parseLore().orEmpty().toTypedArray()
 
         icon = data.getString("icon")?.let(Material::valueOf) ?:
             throw ConfigurationException("missing 'icon'")
@@ -112,11 +139,19 @@ abstract class Upgrade {
     abstract fun onUpgrade(theBlock: TheBlock, newLevel: Int)
 }
 
-interface Spawnable {
-    fun spawn(location: Location)
+class GrowthChanceUpgrade: Upgrade {
+    constructor(key: String, data: ConfigurationSection) : super(key, data)
+
+    override fun onUpgrade(theBlock: TheBlock, newLevel: Int) {
+        theBlock.growthChance = weightPerLevel * newLevel / 100
+    }
 }
 
-class MiningUpgrade: Upgrade, Spawnable {
+interface Spawnable {
+    fun spawn(theBlock: TheBlock)
+}
+
+open class BlockUpgrade: Upgrade, Spawnable {
     val block: Material
 
     constructor(key: String, data: ConfigurationSection) : super(key, data) {
@@ -129,35 +164,55 @@ class MiningUpgrade: Upgrade, Spawnable {
         theBlock.spawnTable[this] = weightPerLevel * newLevel
     }
 
-    override fun spawn(location: Location) {
-        location.setType(block)
+    override fun spawn(theBlock: TheBlock) {
+        theBlock.location.setType(block)
     }
 }
 
-class FarmingUpgrade: Upgrade, Spawnable {
-    val block: Material
+class CropUpgrade: BlockUpgrade {
     val crop: Material
 
     constructor(key: String, data: ConfigurationSection) : super(key, data) {
-        block = data.getString("block")?.let(Material::valueOf) ?:
-            throw ConfigurationException("field 'block' missing from upgrade '$key'")
         crop = data.getString("crop")?.let(Material::valueOf) ?:
             throw ConfigurationException("field 'crop' missing from upgrade '$key'")
     }
 
-    override fun onUpgrade(theBlock: TheBlock, newLevel: Int) {
-        theBlock.previewTable[block] = weightPerLevel * newLevel
-        theBlock.spawnTable[this] = weightPerLevel * newLevel
-    }
-
-    override fun spawn(location: Location) {
-        location.setType(block)
-        val cropLocation = location.plus(0, 1, 0)
+    override fun spawn(theBlock: TheBlock) {
+        theBlock.location.setType(block)
+        for (entity in theBlock.location.toCenterLocation().getNearbyLivingEntities(0.5))
+            entity.location.y = theBlock.block.boundingBox.maxY
+        val cropLocation = theBlock.location.plus(0, 1, 0)
         if (cropLocation.block.type == Material.AIR) {
             cropLocation.setBlock(crop) { data ->
                 if (data is Ageable)
                     data.age = data.maximumAge
             }
         }
+    }
+}
+
+class TreeUpgrade: BlockUpgrade {
+    val treeBlock: Material
+    val treeType: TreeType
+
+    companion object {
+        val random = Random()
+    }
+
+    constructor(key: String, data: ConfigurationSection) : super(key, data) {
+        treeBlock = data.getString("tree-block")?.let(Material::valueOf) ?:
+                throw ConfigurationException("field 'tree-block' missing from upgrade '$key'")
+        treeType = data.getString("tree-type")?.let(TreeType::valueOf) ?:
+                throw ConfigurationException("field 'tree-type' missing from upgrade '$key'")
+    }
+
+    override fun spawn(theBlock: TheBlock) {
+        if (Math.random() > theBlock.growthChance) {
+            theBlock.location.setType(block)
+            return
+        }
+        theBlock.location.setType(treeBlock)
+        val treeLocation = theBlock.location.plus(0, 1, 0)
+        Riftwake.world.generateTree(treeLocation, random, treeType)
     }
 }

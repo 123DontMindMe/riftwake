@@ -126,7 +126,9 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
     inner class EmptyButton(index: Int) : StaticButton(index, emptyIcon)
 
     companion object {
+        @JvmStatic
         protected var emptyIcon = createIcon(null, Material.GRAY_STAINED_GLASS_PANE)
+        @JvmStatic
         protected var clearIcon = createIcon(null, Material.LIGHT_GRAY_STAINED_GLASS_PANE)
 
         @JvmStatic

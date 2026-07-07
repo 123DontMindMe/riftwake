@@ -19,15 +19,21 @@ import me.talula.riftwake.theblock.UpgradeMenuGUI
 import me.talula.riftwake.utils.*
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
+import org.bukkit.Material
+import org.bukkit.Sound
+import org.bukkit.SoundCategory
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.block.Action
-import org.bukkit.event.block.BlockBreakEvent
-import org.bukkit.event.block.BlockPistonExtendEvent
-import org.bukkit.event.block.BlockPistonRetractEvent
+import org.bukkit.event.block.*
+import org.bukkit.event.entity.EntityChangeBlockEvent
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityPlaceEvent
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.*
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
@@ -79,7 +85,6 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
     override fun onEnable() {
         instance = this
-        logger.info("Riftwake enabled")
 
         server.pluginManager.registerEvents(this, this)
         PacketEvents.getAPI().eventManager.registerListener(this, PacketListenerPriority.NORMAL)
@@ -175,7 +180,35 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         registerCommand(Commands.literal("blockmenu")
             .executes { ctx ->
                 val player = ctx.source.sender.riftwake() ?: return@executes 0
+                if (player.block.block == null) {
+                    player.sendMessage(
+                        "You don't currently have a block. Place one with ".red() + "/createblock".yellow() + ".".red())
+                }
                 UpgradeMenuGUI(player).open()
+                1
+            }
+        )
+
+        registerCommand(Commands.literal("clearupgrades")
+            .requires { ctx -> ctx.sender.isOp }
+            .executes { ctx ->
+                val player = ctx.source.sender.riftwake() ?: return@executes 0
+                val block = player.block.block
+                if (block == null) {
+                    player.sendMessage("You don't currently have a block.".red())
+                    return@executes 0
+                }
+                block.clearUpgrades()
+                player.sendMessage("Upgrades cleared.".green())
+                1
+            }
+        )
+
+        registerCommand(Commands.literal("trash")
+            .executes { ctx ->
+                val player = ctx.source.sender.riftwake() ?: return@executes 0
+                player.openInventory(server.createInventory(null, InventoryType.CHEST, "Trash".comp()))
+                player.playSound(Sound.BLOCK_CHEST_OPEN, SoundCategory.UI, 0.4f, 1f)
                 1
             }
         )
@@ -189,8 +222,9 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
-        logger.info("${event.player.name} joined the game")
         playerRegistry[event.player] = RiftwakePlayer(event.player)
+        if (!event.player.hasPlayedBefore())
+            server.broadcast("Welcome ${event.player.name} to Riftwake!".lightPurple())
     }
 
     @EventHandler
@@ -259,6 +293,24 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     fun onPlayerBreakBlock(event: BlockBreakEvent) = playerRegistry[event.player]?.onBreakBlock(event)
 
     @EventHandler
+    fun onPlayerPlaceBlock(event: BlockPlaceEvent) = playerRegistry[event.player]?.onPlaceBlock(event)
+
+    @EventHandler
+    fun onPlayerPlaceEntity(event: EntityPlaceEvent) = playerRegistry[event.player]?.onPlaceEntity(event)
+
+    @EventHandler
+    fun onPlayerReceiveDamage(event: EntityDamageEvent) = playerRegistry[event.entity]?.onReceiveDamage(event)
+
+    @EventHandler
+    fun onPlayerDamageEntity(event: EntityDamageByEntityEvent) {
+        playerRegistry[event.damageSource.causingEntity ?: event.damageSource.directEntity]?.onDamageEntity(event)
+        playerRegistry[event.entity]?.onReceiveEntityDamage(event)
+    }
+
+    @EventHandler
+    fun onPlayerDropItem(event: PlayerDropItemEvent) = playerRegistry[event.player]?.onDropItem(event)
+
+    @EventHandler(ignoreCancelled=true)
     fun onPistonMove(event: BlockPistonExtendEvent) {
         for (block in event.blocks)
             if (block in TheBlockRegistry) {
@@ -267,13 +319,25 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled=true)
     fun onPistonRetract(event: BlockPistonRetractEvent) {
         for (block in event.blocks)
             if (block in TheBlockRegistry) {
                 event.isCancelled = true
                 return
             }
+    }
+
+    // https://www.spigotmc.org/threads/prevent-sand-from-falling-upon-placing-sand.133386/
+    @EventHandler(ignoreCancelled=true)
+    fun onBlockFall(event: EntityChangeBlockEvent) {
+        if (event.block !in TheBlockRegistry)
+            return
+        if (event.entityType == EntityType.FALLING_BLOCK && event.to == Material.AIR) {
+            event.isCancelled = true
+            // Update the block to fix a visual client bug, but don't apply physics
+            event.block.state.update(false, false)
+        }
     }
 
     override fun onPacketReceive(event: PacketReceiveEvent) {

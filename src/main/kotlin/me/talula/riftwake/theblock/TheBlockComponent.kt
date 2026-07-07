@@ -30,7 +30,9 @@ class TheBlockComponent(val player: RiftwakePlayer) {
             }
             Riftwake.runTask { block.spawn() }
         }
-        player.onRightClickBlock += { event, block ->
+        player.onRightClickBlock += rightClick@{ event, block ->
+            if (player.isSneaking)
+                return@rightClick
             if (block.location == this.block?.location) {
                 UpgradeMenuGUI(player).open()
                 event.isCancelled = true

@@ -4,6 +4,7 @@ import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.utils.InventoryGUI
 import me.talula.riftwake.utils.comp
 import me.talula.riftwake.utils.gold
+import me.talula.riftwake.utils.green
 import me.talula.riftwake.utils.lightPurple
 import me.talula.riftwake.utils.lore
 import me.talula.riftwake.utils.parseLore
@@ -29,6 +30,12 @@ class UpgradeMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Upgrades"
         SimpleButton(13, createIcon("Mining".lightPurple(), Material.STONE_PICKAXE, getUpgradeText(numMining))) {
             player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
             MiningUpgradeGUI(player).open()
+        }
+
+        val numBuilding = block.getNumBuildingAffordable(player)
+        SimpleButton(15, createIcon("Building".green(), Material.ANDESITE, getUpgradeText(numBuilding))) {
+            player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
+            BuildingUpgradeGUI(player).open()
         }
 
         fillEmpty()

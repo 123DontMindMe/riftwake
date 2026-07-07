@@ -73,9 +73,7 @@ fun String.lore(): Component {
     return Component.text(this).decoration(TextDecoration.ITALIC, false).color(NamedTextColor.GRAY)
 }
 
-fun String.bold(): Component {
-    return Component.text(this).decorate(TextDecoration.BOLD)
-}
+fun List<String>.parseLore(vararg args: Any) = Components.loreLines(this, *args)
 
 object Components {
     fun content(component: TextComponent): String {
@@ -191,19 +189,21 @@ object Components {
         return builder
     }
 
-    fun loreLines(vararg lines: String): MutableList<TextComponent?> {
-        val components: MutableList<TextComponent?> = ArrayList()
-        for (line in lines) components.add(Components.loreLine(line))
+    fun loreLines(vararg lines: String): MutableList<TextComponent> {
+        val components: MutableList<TextComponent> = ArrayList()
+        for (line in lines)
+            components.add(Components.loreLine(line))
         return components
     }
 
-    fun loreLines(lines: Array<String>, vararg args: Any): MutableList<TextComponent?> {
-        val components: MutableList<TextComponent?> = ArrayList()
+    fun loreLines(lines: Array<String>, vararg args: Any): MutableList<TextComponent> {
+        val components: MutableList<TextComponent> = ArrayList()
 
         // start at first line
         if (lines.isEmpty()) {
-            if (args.isEmpty()) return components
-            throw IllegalArgumentException("Not enough arguments (" + args.size + ") for placeholders")
+            if (args.isEmpty())
+                return components
+            throw IllegalArgumentException("Not enough arguments (${args.size}) for placeholders")
         }
         var lineIndex = 0
         var line = lines[lineIndex]
@@ -217,7 +217,8 @@ object Components {
                 components.add(Components.loreLine(line))
                 lineIndex++
                 // if no more lines, then we ran out of placeholders, so return what we have
-                if (lineIndex == lines.size) return components
+                if (lineIndex == lines.size)
+                    return components
 
                 line = lines[lineIndex]
                 placeholderIndex = line.indexOf("<>")
@@ -235,18 +236,20 @@ object Components {
         return components
     }
 
-    fun loreLines(lines: MutableList<String>): MutableList<TextComponent?> {
-        val components: MutableList<TextComponent?> = ArrayList()
-        for (line in lines) components.add(Components.loreLine(line))
+    fun loreLines(lines: Iterable<String>): MutableList<TextComponent> {
+        val components: MutableList<TextComponent> = ArrayList()
+        for (line in lines)
+            components.add(Components.loreLine(line))
         return components
     }
 
-    fun loreLines(lines: MutableList<String>, vararg args: Any): MutableList<TextComponent?> {
-        val components: MutableList<TextComponent?> = ArrayList()
+    fun loreLines(lines: List<String>, vararg args: Any): MutableList<TextComponent> {
+        val components: MutableList<TextComponent> = ArrayList()
 
         // start at first line
         if (lines.isEmpty()) {
-            if (args.isEmpty()) return components
+            if (args.isEmpty())
+                return components
             throw IllegalArgumentException("Not enough arguments (" + args.size + ") for placeholders")
         }
         var lineIndex = 0
@@ -286,14 +289,14 @@ object Components {
             .build()
     }
 
-    fun lines(vararg lines: String): MutableList<TextComponent?> {
-        val components: MutableList<TextComponent?> = ArrayList()
+    fun lines(vararg lines: String): MutableList<TextComponent> {
+        val components: MutableList<TextComponent> = ArrayList()
         for (line in lines) components.add(line(line))
         return components
     }
 
-    fun lines(lines: MutableList<String>): MutableList<TextComponent?> {
-        val components: MutableList<TextComponent?> = ArrayList()
+    fun lines(lines: MutableList<String>): MutableList<TextComponent> {
+        val components: MutableList<TextComponent> = ArrayList()
         for (line in lines) components.add(line(line))
         return components
     }
@@ -442,70 +445,38 @@ object Components {
     }
 }
 
-fun Component.bold(): Component {
-    return this.decorate(TextDecoration.BOLD)
-}
+fun Component.bold() = decorate(TextDecoration.BOLD)
+fun Component.black() = color(NamedTextColor.BLACK)
+fun Component.darkBlue() = color(NamedTextColor.DARK_BLUE)
+fun Component.darkGreen() = color(NamedTextColor.DARK_GREEN)
+fun Component.darkAqua() = color(NamedTextColor.DARK_AQUA)
+fun Component.darkRed() = color(NamedTextColor.DARK_RED)
+fun Component.darkPurple() = color(NamedTextColor.DARK_PURPLE)
+fun Component.darkGray() = color(NamedTextColor.DARK_GRAY)
+fun Component.gold() = color(NamedTextColor.GOLD)
+fun Component.gray() = color(NamedTextColor.GRAY)
+fun Component.blue() = color(NamedTextColor.BLUE)
+fun Component.green() = color(NamedTextColor.GREEN)
+fun Component.aqua() = color(NamedTextColor.AQUA)
+fun Component.red() = color(NamedTextColor.RED)
+fun Component.lightPurple() = color(NamedTextColor.LIGHT_PURPLE)
+fun Component.yellow() = color(NamedTextColor.YELLOW)
+fun Component.white() = color(NamedTextColor.WHITE)
 
-fun String.black(): TextComponent {
-    return Component.text(this).color(NamedTextColor.BLACK)
-}
-
-fun String.darkBlue(): TextComponent {
-    return Component.text(this).color(NamedTextColor.DARK_BLUE)
-}
-
-fun String.darkGreen(): TextComponent {
-    return Component.text(this).color(NamedTextColor.DARK_GREEN)
-}
-
-fun String.darkAqua(): TextComponent {
-    return Component.text(this).color(NamedTextColor.DARK_AQUA)
-}
-
-fun String.darkRed(): TextComponent {
-    return Component.text(this).color(NamedTextColor.DARK_RED)
-}
-
-fun String.darkPurple(): TextComponent {
-    return Component.text(this).color(NamedTextColor.DARK_PURPLE)
-}
-
-fun String.darkGray(): TextComponent {
-    return Component.text(this).color(NamedTextColor.DARK_GRAY)
-}
-
-fun String.gold(): TextComponent {
-    return Component.text(this).color(NamedTextColor.GOLD)
-}
-
-fun String.gray(): TextComponent {
-    return Component.text(this).color(NamedTextColor.GRAY)
-}
-
-fun String.blue() : TextComponent {
-    return Component.text(this).color(NamedTextColor.BLUE)
-}
-
-fun String.green() : TextComponent {
-    return Component.text(this).color(NamedTextColor.GREEN)
-}
-
-fun String.aqua() : TextComponent {
-    return Component.text(this).color(NamedTextColor.AQUA)
-}
-
-fun String.red() : TextComponent {
-    return Component.text(this).color(NamedTextColor.RED)
-}
-
-fun String.lightPurple(): TextComponent {
-    return Component.text(this).color(NamedTextColor.LIGHT_PURPLE)
-}
-
-fun String.yellow(): TextComponent {
-    return Component.text(this).color(NamedTextColor.YELLOW)
-}
-
-fun String.white(): TextComponent {
-    return Component.text(this).color(NamedTextColor.WHITE)
-}
+fun String.bold() = Component.text(this).decorate(TextDecoration.BOLD)
+fun String.black() = Component.text(this).color(NamedTextColor.BLACK)
+fun String.darkBlue() = Component.text(this).color(NamedTextColor.DARK_BLUE)
+fun String.darkGreen() = Component.text(this).color(NamedTextColor.DARK_GREEN)
+fun String.darkAqua() = Component.text(this).color(NamedTextColor.DARK_AQUA)
+fun String.darkRed() = Component.text(this).color(NamedTextColor.DARK_RED)
+fun String.darkPurple() = Component.text(this).color(NamedTextColor.DARK_PURPLE)
+fun String.darkGray() = Component.text(this).color(NamedTextColor.DARK_GRAY)
+fun String.gold() = Component.text(this).color(NamedTextColor.GOLD)
+fun String.gray() = Component.text(this).color(NamedTextColor.GRAY)
+fun String.blue() = Component.text(this).color(NamedTextColor.BLUE)
+fun String.green() = Component.text(this).color(NamedTextColor.GREEN)
+fun String.aqua() = Component.text(this).color(NamedTextColor.AQUA)
+fun String.red() = Component.text(this).color(NamedTextColor.RED)
+fun String.lightPurple() = Component.text(this).color(NamedTextColor.LIGHT_PURPLE)
+fun String.yellow() = Component.text(this).color(NamedTextColor.YELLOW)
+fun String.white() = Component.text(this).color(NamedTextColor.WHITE)

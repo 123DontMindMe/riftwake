@@ -18,6 +18,12 @@ fun Int.pow(power: Double): Double {
     return this.toDouble().pow(power)
 }
 
+fun Location.xzDistance2(other: Location): Double {
+    val xDiff = x - other.x
+    val zDiff = z - other.z
+    return xDiff * xDiff + zDiff * zDiff
+}
+
 fun Location.setType(type: Material) {
     world.setType(this, type)
 }

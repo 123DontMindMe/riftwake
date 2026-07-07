@@ -33,6 +33,9 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
         }
 
         fun getIcon(): ItemStack {
+            if (upgrade.dependencies.any { block.isLocked(it) })
+                return emptyIcon
+
             val currentLevel = block.getLevel(upgrade.key)
             val weight = upgrade.weightPerLevel * currentLevel
 
@@ -50,7 +53,8 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
                 "<YELLOW|<>% → <>% chance>".parseLore(weight.maxPlaces(2), (weight + upgrade.weightPerLevel).maxPlaces(2)),
                 (if (canAfford) NamedTextColor.GREEN else NamedTextColor.RED).joinLoreLine(
                     "Cost: ", cost, " ", Component.translatable(upgrade.upgradeItem)
-                )
+                ),
+                *upgrade.description
             )
         }
 

@@ -1,12 +1,15 @@
 package me.talula.riftwake.theblock
 
 import me.talula.riftwake.Riftwake
+import me.talula.riftwake.theblock.TreeUpgrade.Companion.random
 import me.talula.riftwake.utils.ConfigurationException
 import me.talula.riftwake.utils.RandomTable
+import me.talula.riftwake.utils.plus
 import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.setType
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.TreeType
 import org.bukkit.block.Block
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.Player
@@ -55,16 +58,25 @@ class TheBlock {
     val upgradeLevels: MutableMap<String, Int> = HashMap()
     val previewTable = RandomTable<Material>()
     val spawnTable = RandomTable<Spawnable>()
+    var growthChance = 0.0
 
     init {
         previewTable.add(Material.DIRT, 70.0)
         previewTable.add(Material.OAK_LOG, 30.0)
 
         spawnTable.add(object : Spawnable {
-            override fun spawn(location: Location) = location.setType(Material.DIRT)
+            override fun spawn(theBlock: TheBlock) = location.setType(Material.DIRT)
         }, 70.0)
         spawnTable.add(object : Spawnable {
-            override fun spawn(location: Location) = location.setType(Material.OAK_LOG)
+            override fun spawn(theBlock: TheBlock) {
+                if (Math.random() > growthChance) {
+                    location.setType(Material.OAK_LOG)
+                    return
+                }
+                location.setType(Material.DIRT)
+                val treeLocation = theBlock.location.plus(0, 1, 0)
+                Riftwake.world.generateTree(treeLocation, random, TreeType.TREE)
+            }
         }, 30.0)
     }
 
@@ -103,24 +115,39 @@ class TheBlock {
 
             block = Riftwake.world.getBlockAt(location)
             TheBlockRegistry.blocksByLocation[block] = this
-            spawnTable.pull().spawn(location)
+            spawnTable.pull().spawn(this)
         }
 
     fun previewPull() = previewTable.pull()
-    fun spawn() = spawnTable.pull().spawn(location)
+    fun spawn() = spawnTable.pull().spawn(this)
     fun getLevel(key: String) = upgradeLevels[key] ?: 0
     fun hasPurchased(key: String): Boolean = getLevel(key) > 0
+    fun isLocked(upgrade: Upgrade): Boolean = upgrade.dependencies.any { !hasPurchased(it.key) }
 
     fun serialize(): Map<String, Any> = linkedMapOf(
         "location" to "${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}",
         "upgrades" to upgradeLevels
     )
 
+    fun clearUpgrades() {
+        for (key in upgradeLevels.keys)
+            UpgradeRegistry.upgrades[key]?.onUpgrade(this, 0)
+        upgradeLevels.clear()
+    }
+
     fun upgrade(key: String) {
         val upgrade = UpgradeRegistry.upgrades[key]!!
         val newLevel = getLevel(key) + 1
         upgradeLevels[key] = newLevel
         upgrade.onUpgrade(this, newLevel)
+    }
+
+    fun getNumFarmingAffordable(player: Player): Int {
+        var num = 0
+        for ((key, upgrade) in UpgradeRegistry.farmingUpgrades)
+            if (player.inventory.contains(upgrade.upgradeItem, upgrade.getCost(getLevel(key))))
+                num++
+        return num
     }
 
     fun getNumMiningAffordable(player: Player): Int {
@@ -131,9 +158,9 @@ class TheBlock {
         return num
     }
 
-    fun getNumFarmingAffordable(player: Player): Int {
+    fun getNumBuildingAffordable(player: Player): Int {
         var num = 0
-        for ((key, upgrade) in UpgradeRegistry.farmingUpgrades)
+        for ((key, upgrade) in UpgradeRegistry.buildingUpgrades)
             if (player.inventory.contains(upgrade.upgradeItem, upgrade.getCost(getLevel(key))))
                 num++
         return num

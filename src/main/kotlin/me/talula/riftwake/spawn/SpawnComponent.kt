@@ -6,6 +6,11 @@ import me.talula.riftwake.constants.NumConstant
 import me.talula.riftwake.constants.TimeConstant
 import me.talula.riftwake.utils.playSound
 import me.talula.riftwake.utils.plus
+import me.talula.riftwake.utils.red
+import me.talula.riftwake.utils.xzDistance2
+import me.talula.riftwake.utils.yellow
+import org.bukkit.GameMode
+import org.bukkit.Location
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
 import org.bukkit.block.BlockFace
@@ -13,12 +18,58 @@ import org.bukkit.util.Vector
 
 class SpawnComponent(val player: RiftwakePlayer) {
     companion object {
+        val spawnCenter = Location(Riftwake.world, 0.5, 100.0, 0.5)
+        val spawnRadius = 63.0
+
         val launchHorizontalSpeed = NumConstant("launchers.horizontal-speed")
         val launchVerticalSpeed = NumConstant("launchers.vertical-speed")
         val launchDuration = TimeConstant("launchers.duration")
+
+        val dropItemMessage =
+            "You can't drop items in spawn. Use ".red() + "/trash".yellow() + " to dispose of items.".red()
     }
 
+    val isInSpawn get() = player.location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
+    fun isInSpawn(location: Location) = player.location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
+
     init {
+        player.onBreakBlock += { event ->
+            if (player.gameMode == GameMode.SURVIVAL && isInSpawn(event.block.location))
+                event.isCancelled = true
+        }
+
+        player.onPlaceBlock += { event ->
+            if (player.gameMode == GameMode.SURVIVAL && isInSpawn(event.block.location))
+                event.isCancelled = true
+        }
+
+        player.onPlaceEntity += { event ->
+            if (player.gameMode == GameMode.SURVIVAL && isInSpawn(event.entity.location))
+                event.isCancelled = true
+        }
+
+        player.onDamageEntity += {event ->
+            if (player.gameMode == GameMode.SURVIVAL && isInSpawn)
+                event.isCancelled = true
+        }
+
+        player.onReceiveDamage += { event ->
+            if (player.gameMode == GameMode.SURVIVAL && isInSpawn)
+                event.isCancelled = true
+        }
+
+        player.onRightClickBlock += { event, _ ->
+            if (player.gameMode == GameMode.SURVIVAL && isInSpawn)
+                event.isCancelled = true
+        }
+
+        player.onDropItem += { event ->
+            if (player.gameMode == GameMode.SURVIVAL && isInSpawn) {
+                event.isCancelled = true
+                player.sendMessage(dropItemMessage)
+            }
+        }
+
         player.onPhysicalInteract += launch@{ event ->
             val block = event.clickedBlock ?: return@launch
 
