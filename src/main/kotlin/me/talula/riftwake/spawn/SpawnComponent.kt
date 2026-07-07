@@ -30,36 +30,36 @@ class SpawnComponent(val player: RiftwakePlayer) {
     }
 
     val isInSpawn get() = player.location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
-    fun isInSpawn(location: Location) = player.location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
+    fun isInSpawn(location: Location) = location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
 
     init {
         player.onBreakBlock += { event ->
-            if (player.gameMode == GameMode.SURVIVAL && isInSpawn(event.block.location))
+            if (player.gameMode == GameMode.SURVIVAL && (isInSpawn || isInSpawn(event.block.location)))
                 event.isCancelled = true
         }
 
         player.onPlaceBlock += { event ->
-            if (player.gameMode == GameMode.SURVIVAL && isInSpawn(event.block.location))
+            if (player.gameMode == GameMode.SURVIVAL && (isInSpawn || isInSpawn(event.block.location)))
                 event.isCancelled = true
         }
 
         player.onPlaceEntity += { event ->
-            if (player.gameMode == GameMode.SURVIVAL && isInSpawn(event.entity.location))
+            if (player.gameMode == GameMode.SURVIVAL && (isInSpawn || isInSpawn(event.entity.location)))
                 event.isCancelled = true
         }
 
         player.onDamageEntity += {event ->
-            if (player.gameMode == GameMode.SURVIVAL && isInSpawn)
+            if (player.gameMode == GameMode.SURVIVAL && (isInSpawn || isInSpawn(event.entity.location)))
                 event.isCancelled = true
         }
 
         player.onReceiveDamage += { event ->
-            if (player.gameMode == GameMode.SURVIVAL && isInSpawn)
+            if (player.gameMode == GameMode.SURVIVAL && (isInSpawn || isInSpawn(event.entity.location)))
                 event.isCancelled = true
         }
 
-        player.onRightClickBlock += { event, _ ->
-            if (player.gameMode == GameMode.SURVIVAL && isInSpawn)
+        player.onRightClickBlock += { event, block ->
+            if (player.gameMode == GameMode.SURVIVAL && (isInSpawn || isInSpawn(block.location)))
                 event.isCancelled = true
         }
 
