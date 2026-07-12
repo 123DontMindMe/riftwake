@@ -15,7 +15,7 @@ abstract class DialogueStage {
 
     open fun onMove(event: PlayerMoveEvent) {}
     open fun onRightClickEntity(event: PlayerInteractEntityEvent) {}
-    open fun onRightClickPacketEntity(event: WrapperPlayClientInteractEntity) {}
+    open fun onInteractPacketEntity(event: WrapperPlayClientInteractEntity) {}
     open fun onRightClickBlock(event: PlayerInteractEvent, block: Block) {}
     open fun onRightClickItem(event: PlayerInteractEvent, item: ItemStack) {}
     open fun onSendMessage(event: AsyncChatEvent) {}

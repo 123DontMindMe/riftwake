@@ -105,7 +105,7 @@ class SpawnComponent(val player: RiftwakePlayer) {
                 else -> return@launch
             }
 
-            player.playSound(Sound.ENTITY_BREEZE_JUMP, SoundCategory.BLOCKS, 1f, 0.5f)
+            player.playSound(Sound.ENTITY_BREEZE_JUMP, SoundCategory.BLOCKS, 0.8f, 0.5f)
             player.velocity = direction.plus(0.0, launchVerticalSpeed(), 0.0)
             var t = launchDuration()
             Riftwake.runTaskTimer(0, 1) { task ->

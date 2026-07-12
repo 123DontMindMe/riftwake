@@ -1,43 +1,36 @@
 package me.talula.riftwake.dialogue
 
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity
-import io.papermc.paper.event.player.AsyncChatEvent
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.temporaries.BlockCoordDisplay
 import me.talula.riftwake.utils.cursorLocation
+import me.talula.riftwake.utils.green
 import me.talula.riftwake.utils.parse
-import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.toStateType
-import net.kyori.adventure.text.TextComponent
-import org.bukkit.Location
 import org.bukkit.event.player.PlayerMoveEvent
-import java.util.function.Consumer
+import org.bukkit.scheduler.BukkitTask
 
-class PlaceBlockStage(
-    private val coordsName: String,
-    private val onResult: Consumer<Location>
-): DialogueStage() {
+class PlaceBlockStage: DialogueStage() {
     private var player: RiftwakePlayer? = null
     private var cursorDisplay: BlockCoordDisplay? = null
     private var isOnCooldown = true
+    private var previewTask: BukkitTask? = null
 
     override fun start(player: RiftwakePlayer) {
         this.player = player
-        player.sendMessage(
-            ("<yellow|Right-click while holding an item to set <>, or type it in chat " +
-            "<gray|(e.g., -100 200 -300)>. Left-click to cancel.>").parse(coordsName)
-        )
+        player.sendMessage("<yellow|<green|Right-click> to place, or <red|left-click> to cancel.>".parse())
 
         cursorDisplay = BlockCoordDisplay(
             player,
-            blockMaterial=player.block.previewPull().toStateType(),
+            player.block.previewPull().toStateType(),
             player.cursorLocation,
             true)
 
-        Riftwake.runTaskTimer(10, 10) {
+        previewTask = Riftwake.runTaskTimer(10, 10) {
             var material = player.block.previewPull().toStateType()
-            while (cursorDisplay?.material == material)
+            var i = 0
+            while (cursorDisplay?.material == material && i++ < 20)
                 material = player.block.previewPull().toStateType()
 
             cursorDisplay?.material = material
@@ -47,6 +40,7 @@ class PlaceBlockStage(
     }
 
     override fun cleanUp() {
+        previewTask?.cancel()
         cursorDisplay?.delete()
     }
 
@@ -54,58 +48,23 @@ class PlaceBlockStage(
         cursorDisplay?.location = event.cursorLocation
     }
 
-    override fun onSendMessage(event: AsyncChatEvent) {
-        val player = player ?: return
-        val cursorDisplay = cursorDisplay ?: return
-        val message = event.message() as? TextComponent ?: return
-        event.isCancelled = true
-        Riftwake.runTask {
-            val content = message.content().trim().split(" ")
-            if (content.size != 3) {
-                player.sendMessage("Invalid coordinates (format should be 'x y z').".red())
-                return@runTask
-            }
-            val x: Int
-            val y: Int
-            val z: Int
-            try {
-                x = content[0].toInt()
-                y = content[1].toInt()
-                z = content[2].toInt()
-            } catch (_: NumberFormatException) {
-                player.sendMessage("Invalid coordinates (x, y, and z must be integers).".red())
-                return@runTask
-            }
-            cursorDisplay.location = Location(player.world, x.toDouble(), y.toDouble(), z.toDouble())
-            onResult.accept(cursorDisplay.location)
-            player.dialogue.advance()
-        }
-    }
-
-    override fun onRightClickPacketEntity(event: WrapperPlayClientInteractEntity) {
+    override fun onInteractPacketEntity(event: WrapperPlayClientInteractEntity) {
         if (isOnCooldown)
             return
         val cursorDisplay = cursorDisplay ?: return
         val player = player ?: return
 
-        onResult.accept(cursorDisplay.location)
+        if (event.action == WrapperPlayClientInteractEntity.InteractAction.ATTACK) {
+            player.dialogue.cancel()
+            return
+        }
+
+        val location = cursorDisplay.location
+        // must be done sync
+        Riftwake.runTask {
+            player.block.setBlockLocation(location)
+            player.sendMessage("Block placed at (${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}).".green())
+        }
         player.dialogue.advance()
     }
-//
-//    override fun onRightClickObject(event: PlayerInteractEvent) {
-//        if (isOnCooldown) return
-//        event.setCancelled(true)
-//        onResult!!.accept(cursorDisplay.getBlockLocation())
-//        state.advance()
-//    }
-//
-//    override fun onLeftClickEntity(event: PrePlayerAttackEntityEvent) {
-//        event.setCancelled(true)
-//        state.cancel()
-//    }
-//
-//    override fun onLeftClickObject(event: PlayerInteractEvent) {
-//        event.setCancelled(true)
-//        state.cancel()
-//    }
 }

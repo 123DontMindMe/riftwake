@@ -13,6 +13,7 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.TreeType
 import org.bukkit.block.data.Ageable
+import org.bukkit.block.data.BlockData
 import org.bukkit.configuration.ConfigurationSection
 import java.util.Random
 
@@ -21,12 +22,16 @@ object UpgradeRegistry {
     val farmingFile = Riftwake.getConfig("farming_upgrades.yml")
     val buildingFile = Riftwake.getConfig("building_upgrades.yml")
 
+    val tiers: Map<String, Int> field = mutableMapOf()
     val miningUpgrades: Map<String, Upgrade> field = mutableMapOf()
     val farmingUpgrades: Map<String, Upgrade> field = mutableMapOf()
     val buildingUpgrades: Map<String, Upgrade> field = mutableMapOf()
     val upgrades: Map<String, Upgrade> field = mutableMapOf()
 
     init {
+        for ((index, key) in Riftwake.getFile("tiers.txt").readLines().withIndex())
+            tiers[key] = index + 2
+
         for (key in miningFile.getKeys(false)) {
             val upgrade = try {
                 readUpgrade(key, miningFile.getConfigurationSection(key)!!)
@@ -72,7 +77,7 @@ object UpgradeRegistry {
 
 abstract class Upgrade {
     val key: String
-    val dataKey: String
+    val tier: Int
     val dependencies: List<Upgrade>
     val upgradeItem: Material
     val maxLevel: Int
@@ -87,15 +92,13 @@ abstract class Upgrade {
 
     constructor(key: String, data: ConfigurationSection) {
         this.key = key
-        dataKey = "block-upgrades." + key
-        dependencies =
-            data.getString("needs")?.split(',')?.map{ s ->
-                val k = s.trim()
-                if (k in UpgradeRegistry.upgrades)
-                    UpgradeRegistry.upgrades[k]!!
-                else
-                    throw ConfigurationException("'needs' contains non-existent key '$k'")
-            } ?: listOf()
+        tier = UpgradeRegistry.tiers[key] ?:
+            throw ConfigurationException("tier not found")
+        dependencies = data.getString("needs")?.split(',')?.map{ s ->
+            val k = s.trim()
+            UpgradeRegistry.upgrades[k] ?:
+                throw ConfigurationException("'needs' contains non-existent key '$k'")
+        } ?: listOf()
 
         upgradeItem = data.getString("upgrade-with")?.let(Material::valueOf) ?:
             throw ConfigurationException("missing 'upgrade-with'")
@@ -156,12 +159,13 @@ open class BlockUpgrade: Upgrade, Spawnable {
 
     constructor(key: String, data: ConfigurationSection) : super(key, data) {
         block = data.getString("block")?.let(Material::valueOf) ?:
-            throw ConfigurationException("field 'block' missing from upgrade '$key'")
+            throw ConfigurationException("missing 'block'")
     }
 
     override fun onUpgrade(theBlock: TheBlock, newLevel: Int) {
-        theBlock.previewTable[block] = weightPerLevel * newLevel
-        theBlock.spawnTable[this] = weightPerLevel * newLevel
+        val chance = weightPerLevel * newLevel
+        theBlock.previewTable.set(tier, chance, block)
+        theBlock.spawnTable.set(tier, chance, this)
     }
 
     override fun spawn(theBlock: TheBlock) {
@@ -170,11 +174,15 @@ open class BlockUpgrade: Upgrade, Spawnable {
 }
 
 class CropUpgrade: BlockUpgrade {
-    val crop: Material
+    val crops: List<BlockData>
 
     constructor(key: String, data: ConfigurationSection) : super(key, data) {
-        crop = data.getString("crop")?.let(Material::valueOf) ?:
-            throw ConfigurationException("field 'crop' missing from upgrade '$key'")
+        crops = data.getString("crop")?.split(',')?.map{ c ->
+            Material.valueOf(c.trim()).createBlockData { data ->
+                if (data is Ageable)
+                    data.age = data.maximumAge
+            }
+        } ?: throw ConfigurationException("field 'crop' missing from upgrade '$key'")
     }
 
     override fun spawn(theBlock: TheBlock) {
@@ -182,12 +190,8 @@ class CropUpgrade: BlockUpgrade {
         for (entity in theBlock.location.toCenterLocation().getNearbyLivingEntities(0.5))
             entity.location.y = theBlock.block.boundingBox.maxY
         val cropLocation = theBlock.location.plus(0, 1, 0)
-        if (cropLocation.block.type == Material.AIR) {
-            cropLocation.setBlock(crop) { data ->
-                if (data is Ageable)
-                    data.age = data.maximumAge
-            }
-        }
+        if (cropLocation.block.type == Material.AIR)
+            cropLocation.setBlock(crops.random())
     }
 }
 
@@ -201,9 +205,9 @@ class TreeUpgrade: BlockUpgrade {
 
     constructor(key: String, data: ConfigurationSection) : super(key, data) {
         treeBlock = data.getString("tree-block")?.let(Material::valueOf) ?:
-                throw ConfigurationException("field 'tree-block' missing from upgrade '$key'")
+            throw ConfigurationException("field 'tree-block' missing from upgrade '$key'")
         treeType = data.getString("tree-type")?.let(TreeType::valueOf) ?:
-                throw ConfigurationException("field 'tree-type' missing from upgrade '$key'")
+            throw ConfigurationException("field 'tree-type' missing from upgrade '$key'")
     }
 
     override fun spawn(theBlock: TheBlock) {

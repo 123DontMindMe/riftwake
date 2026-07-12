@@ -446,6 +446,8 @@ object Components {
 }
 
 fun Component.bold() = decorate(TextDecoration.BOLD)
+fun Component.unitalic() = decoration(TextDecoration.ITALIC, false)
+fun Component.strikethrough() = decorate(TextDecoration.STRIKETHROUGH)
 fun Component.black() = color(NamedTextColor.BLACK)
 fun Component.darkBlue() = color(NamedTextColor.DARK_BLUE)
 fun Component.darkGreen() = color(NamedTextColor.DARK_GREEN)

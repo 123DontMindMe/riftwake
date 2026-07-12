@@ -56,5 +56,6 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         TheBlockRegistry.register(block)
     }
 
+    // null case is for when there's no block yet
     fun previewPull() = block?.previewTable?.pull() ?: (if (Math.random() < 0.7) Material.DIRT else Material.OAK_LOG)
 }

@@ -15,7 +15,7 @@ class DialogueComponent(val player: RiftwakePlayer) {
         player.onRemove += { stages?.forEach { it.cleanUp() } }
         player.onMove += { event -> currentStage?.onMove(event) }
         player.onRightClickEntity += { event -> currentStage?.onRightClickEntity(event) }
-        player.onRightClickPacketEntity += { event -> currentStage?.onRightClickPacketEntity(event) }
+        player.onInteractPacketEntity += { event -> currentStage?.onInteractPacketEntity(event) }
         player.onRightClickBlock += { event, block -> currentStage?.onRightClickBlock(event, block) }
         player.onRightClickItem += { event, item -> currentStage?.onRightClickItem(event, item) }
         player.onSendMessage += { event -> currentStage?.onSendMessage(event) }
@@ -63,5 +63,6 @@ class DialogueComponent(val player: RiftwakePlayer) {
     fun finish() {
         stages?.forEach { it.cleanUp() }
         stages = null
+        cancelMessage = null
     }
 }

@@ -1,6 +1,25 @@
 package me.talula.riftwake.utils
 
 import java.util.*
+import kotlin.collections.set
+
+class TieredTable<E> {
+    inner class Entry(val value: E, val chance: Double)
+    private val tiers = TreeMap<Int, Entry>()
+
+    fun pull(): E {
+        for ((index, entry) in tiers.descendingMap().values.withIndex()) {
+            if (index == tiers.size - 1 || Math.random() < entry.chance / 100)
+                return entry.value
+            else continue
+        }
+        throw IllegalStateException("Can't pull from empty table")
+    }
+
+    fun set(tier: Int, chance: Double, value: E) {
+        tiers[tier] = Entry(value, chance)
+    }
+}
 
 class RandomTable<E> {
     inner class Entry(val value: E, val weight: Double)
@@ -62,6 +81,12 @@ class RandomTable<E> {
         if (isEmpty)
             throw IllegalStateException("Can't pull from empty table")
         return distribution.higherEntry(Math.random() * totalWeight).value
+    }
+
+    fun pull(totalWeight: Double): E? {
+        if (isEmpty)
+            throw IllegalStateException("Can't pull from empty table")
+        return distribution.higherEntry(Math.random() * totalWeight.coerceAtLeast(this.totalWeight)).value
     }
 
     val size: Int

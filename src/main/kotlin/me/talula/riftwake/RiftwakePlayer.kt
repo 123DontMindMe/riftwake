@@ -27,7 +27,7 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val onMove = Event<PlayerMoveEvent>()
     val onPhysicalInteract = Event<PlayerInteractEvent>()
     val onRightClickEntity = Event<PlayerInteractEntityEvent>()
-    val onRightClickPacketEntity = Event<WrapperPlayClientInteractEntity>()
+    val onInteractPacketEntity = Event<WrapperPlayClientInteractEntity>()
     val onRightClickBlock = BiEvent<PlayerInteractEvent, Block>()
     val onRightClickItem = BiEvent<PlayerInteractEvent, ItemStack>()
     val onSendMessage = Event<AsyncChatEvent>()

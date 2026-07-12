@@ -3,7 +3,7 @@ package me.talula.riftwake.theblock
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.theblock.TreeUpgrade.Companion.random
 import me.talula.riftwake.utils.ConfigurationException
-import me.talula.riftwake.utils.RandomTable
+import me.talula.riftwake.utils.TieredTable
 import me.talula.riftwake.utils.plus
 import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.setType
@@ -56,18 +56,19 @@ class TheBlock {
     var block: Block private set
     val owner: UUID
     val upgradeLevels: MutableMap<String, Int> = HashMap()
-    val previewTable = RandomTable<Material>()
-    val spawnTable = RandomTable<Spawnable>()
+    private val disabledUpgrades = HashSet<String>()
+    val previewTable = TieredTable<Material>()
+    val spawnTable = TieredTable<Spawnable>()
     var growthChance = 0.0
 
     init {
-        previewTable.add(Material.DIRT, 70.0)
-        previewTable.add(Material.OAK_LOG, 30.0)
+        previewTable.set(tier=0, chance=70.0, Material.DIRT)
+        previewTable.set(tier=1, chance=30.0, Material.OAK_LOG)
 
-        spawnTable.add(object : Spawnable {
+        spawnTable.set(tier=0, chance=70.0, object : Spawnable {
             override fun spawn(theBlock: TheBlock) = location.setType(Material.DIRT)
-        }, 70.0)
-        spawnTable.add(object : Spawnable {
+        })
+        spawnTable.set(tier=1, chance=30.0, object : Spawnable {
             override fun spawn(theBlock: TheBlock) {
                 if (Math.random() > growthChance) {
                     location.setType(Material.OAK_LOG)
@@ -77,7 +78,7 @@ class TheBlock {
                 val treeLocation = theBlock.location.plus(0, 1, 0)
                 Riftwake.world.generateTree(treeLocation, random, TreeType.TREE)
             }
-        }, 30.0)
+        })
     }
 
     constructor(owner: UUID, data: ConfigurationSection) {
@@ -121,8 +122,17 @@ class TheBlock {
     fun previewPull() = previewTable.pull()
     fun spawn() = spawnTable.pull().spawn(this)
     fun getLevel(key: String) = upgradeLevels[key] ?: 0
-    fun hasPurchased(key: String): Boolean = getLevel(key) > 0
-    fun isLocked(upgrade: Upgrade): Boolean = upgrade.dependencies.any { !hasPurchased(it.key) }
+    fun hasPurchased(key: String) = getLevel(key) > 0
+    fun isLocked(upgrade: Upgrade) = upgrade.dependencies.any { !hasPurchased(it.key) }
+    fun isDisabled(upgrade: Upgrade) = upgrade.key in disabledUpgrades
+    fun disable(upgrade: Upgrade) {
+        disabledUpgrades.add(upgrade.key)
+        upgrade.onUpgrade(this, 0)
+    }
+    fun enable(upgrade: Upgrade) {
+        disabledUpgrades.remove(upgrade.key)
+        upgrade.onUpgrade(this, getLevel(upgrade.key))
+    }
 
     fun serialize(): Map<String, Any> = linkedMapOf(
         "location" to "${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}",
@@ -140,6 +150,26 @@ class TheBlock {
         val newLevel = getLevel(key) + 1
         upgradeLevels[key] = newLevel
         upgrade.onUpgrade(this, newLevel)
+    }
+
+    val numMiningPurchased: Int get() = upgradeLevels.count { (key, level) ->
+        key in UpgradeRegistry.miningUpgrades && level > 0
+    }
+    val numFarmingPurchased: Int get() = upgradeLevels.count { (key, level) ->
+        key in UpgradeRegistry.farmingUpgrades && level > 0
+    }
+    val numBuildingPurchased: Int get() = upgradeLevels.count { (key, level) ->
+        key in UpgradeRegistry.buildingUpgrades && level > 0
+    }
+
+    val numMiningDisabled: Int get() = upgradeLevels.keys.count { key ->
+        key in UpgradeRegistry.miningUpgrades && key in disabledUpgrades
+    }
+    val numFarmingDisabled: Int get() = upgradeLevels.keys.count { key ->
+        key in UpgradeRegistry.farmingUpgrades && key in disabledUpgrades
+    }
+    val numBuildingDisabled: Int get() = upgradeLevels.keys.count { key ->
+        key in UpgradeRegistry.buildingUpgrades && key in disabledUpgrades
     }
 
     fun getNumFarmingAffordable(player: Player): Int {

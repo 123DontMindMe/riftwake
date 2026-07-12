@@ -8,6 +8,13 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketType
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats
+import com.sk89q.worldedit.function.mask.BlockTypeMask
+import com.sk89q.worldedit.function.operation.Operations
+import com.sk89q.worldedit.math.BlockVector3
+import com.sk89q.worldedit.regions.CuboidRegion
+import com.sk89q.worldedit.session.ClipboardHolder
+import com.sk89q.worldedit.world.block.BlockTypes
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
 import io.papermc.paper.event.player.AsyncChatEvent
@@ -18,6 +25,7 @@ import me.talula.riftwake.theblock.TheBlockRegistry
 import me.talula.riftwake.theblock.UpgradeMenuGUI
 import me.talula.riftwake.utils.*
 import net.kyori.adventure.text.Component
+import org.apache.commons.lang3.mutable.MutableObject
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.Sound
@@ -39,6 +47,7 @@ import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import java.io.File
+import java.io.FileInputStream
 
 
 class Riftwake : JavaPlugin(), Listener, PacketListener {
@@ -58,8 +67,11 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             Bukkit.getScheduler().runTaskLater(instance, task, delay)
         }
 
-        fun runTaskTimer(delay: Long, interval: Long, task: (BukkitTask) -> Unit) {
-            Bukkit.getScheduler().runTaskTimer(instance, task, delay, interval)
+        fun runTaskTimer(delay: Long, interval: Long, task: (BukkitTask) -> Unit): BukkitTask {
+            val reference = MutableObject<BukkitTask>()
+            reference.value = Bukkit.getScheduler().runTaskTimer(instance,
+                Runnable { task(reference.value) }, delay, interval)
+            return reference.value
         }
 
         fun broadcastToOperators(message: String) {
@@ -76,6 +88,10 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
         fun getConfig(pathInDataFolder: String): YamlConfiguration {
             return YamlConfiguration.loadConfiguration(File(instance.dataFolder, pathInDataFolder))
+        }
+
+        fun getFile(pathInDataFolder: String): File {
+            return File(instance.dataFolder, pathInDataFolder)
         }
 
         fun saveConfig(file: YamlConfiguration, pathInDataFolder: String) {
@@ -165,13 +181,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             .executes { ctx ->
                 val player = ctx.source.sender.riftwake() ?: return@executes 0
                 player.dialogue.start(
-                    cancelMessage = "Block placement cancelled.".red(),
-                    PlaceBlockStage("the location of the block") { location ->
-                        runTask {  // must be done sync
-                            player.block.setBlockLocation(location)
-                            player.sendMessage("Block placed at (${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}).".green())
-                        }
-                    }
+                    cancelMessage = "Cancelled block placement.".red(),
+                    PlaceBlockStage()
                 )
                 1
             }
@@ -209,6 +220,47 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                 val player = ctx.source.sender.riftwake() ?: return@executes 0
                 player.openInventory(server.createInventory(null, InventoryType.CHEST, "Trash".comp()))
                 player.playSound(Sound.BLOCK_CHEST_OPEN, SoundCategory.UI, 0.4f, 1f)
+                1
+            }
+        )
+
+        registerCommand(Commands.literal("placestructures")
+            .executes { ctx ->
+                val player = ctx.source.sender.riftwake() ?: return@executes 0
+                val file = File(dataFolder, "structures/islandtemplate3.schem")
+                val format = ClipboardFormats.findByPath(file.toPath())!!
+                val reader = format.getReader(FileInputStream(file))
+                val to = BlockVector3(500, 0, 0)
+                reader.use { reader ->
+                    val clipboard = reader.read()
+                    world.edit { session ->
+//                        val copy = ForwardExtentCopy(
+//                            clipboard,
+//                            clipboard.region,
+//                            clipboard.origin,
+//                            session,
+//                            to
+//                        )
+//                        copy.sourceFunction = RegionMaskingFilter(
+//                            BlockTypeMask(clipboard, BlockTypes.RED_WOOL),
+//                            BlockReplace(clipboard, BlockTypes.OAK_LEAVES!!.defaultState))
+//                        copy.sourceFunction = BlockReplace(session, BlockTypes.OAK_LEAVES!!.defaultState)
+//                        Operations.complete(copy)
+                        Operations.complete(ClipboardHolder(clipboard)
+                            .createPaste(session)
+                            .to(to)
+                            .ignoreAirBlocks(true)
+                            .build())
+                    }
+                    world.edit { session ->
+                        session.replaceBlocks(
+                            CuboidRegion(to, to.subtract(clipboard.dimensions)),
+                            BlockTypeMask(session, BlockTypes.RED_WOOL),
+                            BlockTypes.OAK_LEAVES!!.defaultState
+                        )
+                    }
+                }
+                player.sendMessage("Placed structure.".green())
                 1
             }
         )
@@ -344,7 +396,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         if (event.packetType == PacketType.Play.Client.INTERACT_ENTITY) {
             val packet = WrapperPlayClientInteractEntity(event)
             componentLogger.info("{}", packet.action)
-            playerRegistry[event.getPlayer()]?.onRightClickPacketEntity(packet)
+            playerRegistry[event.getPlayer()]?.onInteractPacketEntity(packet)
         }
     }
 

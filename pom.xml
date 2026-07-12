@@ -81,6 +81,10 @@
       <id>codemc-snapshots</id>
       <url>https://repo.codemc.io/repository/maven-snapshots/</url>
     </repository>
+    <repository>
+      <id>enginehub-maven</id>
+      <url>https://maven.enginehub.org/repo/</url>
+    </repository>
   </repositories>
 
   <dependencies>
@@ -99,6 +103,12 @@
       <groupId>com.github.retrooper</groupId>
       <artifactId>packetevents-spigot</artifactId>
       <version>2.13.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.sk89q.worldedit</groupId>
+      <artifactId>worldedit-bukkit</artifactId>
+      <version>7.4.3</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
