@@ -4,10 +4,8 @@ import com.mojang.brigadier.arguments.LongArgumentType
 import io.papermc.paper.command.brigadier.Commands
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.constants.TimeConstant
-import me.talula.riftwake.utils.green
 import me.talula.riftwake.utils.playSound
 import me.talula.riftwake.utils.playerRun
-import me.talula.riftwake.utils.plus
 import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.riftwake
 import me.talula.riftwake.utils.yellow
@@ -39,9 +37,7 @@ object AuctionRegistry {
                             return@playerRun false
                         }
                         val cost = ctx.getArgument("cost", Long::class.java)
-                        items += AuctionItem(player, item.clone(), cost, sellDuration().toLong())
-                        player.inventory.setItem(player.inventory.heldItemSlot, null)
-                        player.sendMessage(Component.translatable(item) + " put up for auction for $cost.".green)
+                        AuctionConfirmSellGUI(player, item.clone(), cost).open()
                         true
                     }
                 )
@@ -50,10 +46,10 @@ object AuctionRegistry {
     }
 }
 
-class AuctionItem(val owner: OfflinePlayer, val item: ItemStack, val cost: Long, val duration: Long) {
+class AuctionItem(val owner: OfflinePlayer, val item: ItemStack, val cost: Long, val duration: Int) {
     val timestamp = Riftwake.server.currentTick
     init {
-        Riftwake.runTaskLater(duration) {
+        Riftwake.runTaskLater(duration.toLong()) {
             AuctionRegistry.items.remove(this)
             val player = owner.riftwake ?: return@runTaskLater
             player.sendMessage("Your auction item " + Component.translatable(item) + " has expired.".yellow)

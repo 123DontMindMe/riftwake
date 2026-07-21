@@ -48,9 +48,9 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
     }
 
     abstract fun onClick(event: InventoryClickEvent)
-    fun onDrag(event: InventoryDragEvent) {}
-    fun onPlayerInventoryClick(event: InventoryClickEvent) {}
-    fun onClose(event: InventoryCloseEvent) {}
+    open fun onDrag(event: InventoryDragEvent) {}
+    open fun onPlayerInventoryClick(event: InventoryClickEvent) {}
+    open fun onClose(event: InventoryCloseEvent) {}
 
     private fun processPotentialButtonClick(event: InventoryClickEvent) {
         val button = buttons[event.slot]

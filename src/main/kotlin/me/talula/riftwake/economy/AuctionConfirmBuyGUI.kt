@@ -11,6 +11,7 @@ import me.talula.riftwake.utils.plus
 import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.setBalance
 import me.talula.riftwake.utils.unitalic
+import me.talula.riftwake.utils.withRandomUUID
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound
@@ -22,7 +23,7 @@ class AuctionConfirmBuyGUI(player: RiftwakePlayer, val auctionItem: AuctionItem)
 ) {
     init {
         inventory.setItem(0, createIcon("Confirm".green.bold, Material.GREEN_STAINED_GLASS_PANE))
-        inventory.setItem(4, auctionItem.item)
+        inventory.setItem(4, auctionItem.item.withRandomUUID())
         inventory.setItem(8, createIcon("Cancel".red.bold, Material.RED_STAINED_GLASS_PANE))
 
         fillEmpty()

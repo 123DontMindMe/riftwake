@@ -6,6 +6,7 @@ import com.github.retrooper.packetevents.event.PacketListenerPriority
 import com.github.retrooper.packetevents.event.PacketReceiveEvent
 import com.github.retrooper.packetevents.protocol.packettype.PacketType
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity
+import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats
@@ -32,11 +33,7 @@ import net.kyori.adventure.text.Component
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
 import org.apache.commons.lang3.mutable.MutableObject
-import org.bukkit.Bukkit
-import org.bukkit.Location
-import org.bukkit.Material
-import org.bukkit.Sound
-import org.bukkit.SoundCategory
+import org.bukkit.*
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
@@ -285,6 +282,18 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                 player.sendMessage("Your current balance is ${player.balance}.".green)
                 true
             }
+            .then(Commands.literal("add")
+                .requires { it.sender.isOp }
+                .then(Commands.argument("amount", LongArgumentType.longArg())
+                    .playerRun { ctx, player ->
+                        val amount = ctx.getArgument("amount", Long::class.java)
+                        val oldBalance = player.balance
+                        player.balance += amount
+                        player.sendMessage("Balance changed from $oldBalance to ${oldBalance + amount}".green)
+                        true
+                    }
+                )
+            )
         )
 
         val layerTable = LayerTable()

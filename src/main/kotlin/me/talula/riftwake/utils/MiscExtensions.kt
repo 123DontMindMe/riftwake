@@ -16,9 +16,17 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.data.BlockData
+import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.Vector
+import java.util.UUID
 import kotlin.math.pow
+
+fun ItemStack.withRandomUUID(): ItemStack {
+    val item = clone()
+    item.editMeta { it.setData("random-uuid", PersistentDataType.STRING, UUID.randomUUID().toString()) }
+    return item
+}
 
 fun String.toPersistentDataType(): PersistentDataType<*,*>? {
     return when (this) {
