@@ -23,7 +23,7 @@ class BlockCoordDisplay(
     private var blockMaterial: StateType,
     private var blockLocation: Location,
     val isInteractable: Boolean = false,
-) : Temporary {
+) {
     private val displayEntityId = SpigotReflectionUtil.generateEntityId()
     private val textEntityId = SpigotReflectionUtil.generateEntityId()
     private val interactEntityId = if (isInteractable) SpigotReflectionUtil.generateEntityId() else -1
@@ -89,7 +89,7 @@ class BlockCoordDisplay(
             ))
         }
 
-    override fun delete() {
+    fun delete() {
         if (isInteractable)
             player.sendPacket(WrapperPlayServerDestroyEntities(displayEntityId, textEntityId, interactEntityId))
         else
