@@ -26,7 +26,7 @@ class SpawnComponent(val player: RiftwakePlayer) {
         val launchDuration = TimeConstant("launchers.duration")
 
         val dropItemMessage =
-            "You can't drop items in spawn. Use ".red() + "/trash".yellow() + " to dispose of items.".red()
+            "You can't drop items in spawn. Use ".red + "/trash".yellow + " to dispose of items.".red
     }
 
     val isInSpawn get() = player.location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius

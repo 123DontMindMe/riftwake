@@ -14,6 +14,7 @@ import org.bukkit.Material
 import org.bukkit.TreeType
 import org.bukkit.block.data.Ageable
 import org.bukkit.block.data.BlockData
+import org.bukkit.block.data.type.CaveVinesPlant
 import org.bukkit.configuration.ConfigurationSection
 import java.util.Random
 
@@ -36,7 +37,7 @@ object UpgradeRegistry {
             val upgrade = try {
                 readUpgrade(key, miningFile.getConfigurationSection(key)!!)
             } catch (error: ConfigurationException) {
-                Riftwake.broadcastToOperators(("config error in upgrade '$key': " + error.message).red())
+                Riftwake.broadcastToOperators(("config error in upgrade '$key': " + error.message).red)
                 continue
             }
             upgrades[key] = upgrade
@@ -46,7 +47,7 @@ object UpgradeRegistry {
             val upgrade = try {
                 readUpgrade(key, farmingFile.getConfigurationSection(key)!!)
             } catch (error: ConfigurationException) {
-                Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red())
+                Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red)
                 continue
             }
             upgrades[key] = upgrade
@@ -56,7 +57,7 @@ object UpgradeRegistry {
             val upgrade = try {
                 readUpgrade(key, buildingFile.getConfigurationSection(key)!!)
             } catch (error: ConfigurationException) {
-                Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red())
+                Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red)
                 continue
             }
             upgrades[key] = upgrade
@@ -181,6 +182,8 @@ class CropUpgrade: BlockUpgrade {
             Material.valueOf(c.trim()).createBlockData { data ->
                 if (data is Ageable)
                     data.age = data.maximumAge
+                if (data is CaveVinesPlant)
+                    data.isBerries = true
             }
         } ?: throw ConfigurationException("field 'crop' missing from upgrade '$key'")
     }

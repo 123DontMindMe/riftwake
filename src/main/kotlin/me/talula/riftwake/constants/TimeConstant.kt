@@ -3,6 +3,8 @@ package me.talula.riftwake.constants
 class TimeConstant(name: String): Constant<Int>(name, "time") {
     override fun serialize(): String {
         var totalTicks = value
+        val weeks = totalTicks / (60 * 60 * 20 * 24 * 7)
+        totalTicks %= 60 * 60 * 20 * 24 * 7
         val days = totalTicks / (60 * 60 * 20 * 24)
         totalTicks %= 60 * 60 * 20 * 24
         val hours = totalTicks / (60 * 60 * 20)
@@ -12,24 +14,17 @@ class TimeConstant(name: String): Constant<Int>(name, "time") {
 		val seconds = totalTicks / 20
 		totalTicks %= 20
 		val ticks = totalTicks
-        val result = StringBuilder()
-        if (days > 0)
-            result.append(days).append("w ")
-        if (hours > 0)
-            result.append(hours).append("d ")
-		if (hours > 0)
-            result.append(hours).append("h ")
-		if (minutes > 0)
-			result.append(minutes).append("m ")
-		if (seconds > 0)
-			result.append(seconds).append("s ")
-		if (ticks > 0)
-			result.append(ticks).append("t ")
 
-		if (result.isEmpty())
-			result.append("0t")
-		else
-			result.deleteCharAt(result.length - 1)
+        val result = StringBuilder()
+        if (weeks > 0) result.append(weeks).append("w ")
+        if (days > 0) result.append(days).append("d ")
+		if (hours > 0) result.append(hours).append("h ")
+		if (minutes > 0) result.append(minutes).append("m ")
+		if (seconds > 0) result.append(seconds).append("s ")
+		if (ticks > 0) result.append(ticks).append("t ")
+
+		if (result.isEmpty()) result.append("0t")
+		else result.deleteCharAt(result.length - 1)
 
 		return result.toString()
     }

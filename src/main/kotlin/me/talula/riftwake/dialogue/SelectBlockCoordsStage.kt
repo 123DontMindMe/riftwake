@@ -52,7 +52,7 @@ class SelectBlockCoordsStage(
         Riftwake.runTask {
             val content = message.content().trim().split(" ")
             if (content.size != 3) {
-                player.sendMessage("Invalid coordinates (format should be 'x y z').".red())
+                player.sendMessage("Invalid coordinates (format should be 'x y z').".red)
                 return@runTask
             }
             val x: Int
@@ -63,7 +63,7 @@ class SelectBlockCoordsStage(
                 y = content[1].toInt()
                 z = content[2].toInt()
             } catch (_: NumberFormatException) {
-                player.sendMessage("Invalid coordinates (x, y, and z must be integers).".red())
+                player.sendMessage("Invalid coordinates (x, y, and z must be integers).".red)
                 return@runTask
             }
             cursorDisplay.location = Location(player.world, x.toDouble(), y.toDouble(), z.toDouble())

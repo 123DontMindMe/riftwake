@@ -24,7 +24,7 @@ class UpgradeMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Upgrades"
             throw IllegalStateException("Attempted to create upgrade menu GUI when player ${player.name} (${player.uniqueId}) has no block")
 
         SimpleButton(11, createIcon(
-            "Farming".gold() + " (${block.numFarmingPurchased}/${UpgradeRegistry.farmingUpgrades.size})".yellow(),
+            "Farming".gold + " (${block.numFarmingPurchased}/${UpgradeRegistry.farmingUpgrades.size})".yellow,
             Material.MELON_SLICE,
             getLore(block.getNumFarmingAffordable(player), block.numFarmingDisabled))
         ) {
@@ -34,7 +34,7 @@ class UpgradeMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Upgrades"
 
 
         SimpleButton(13, createIcon(
-            "Mining".lightPurple() + " (${ block.numMiningPurchased}/${UpgradeRegistry.miningUpgrades.size})".yellow(),
+            "Mining".lightPurple + " (${ block.numMiningPurchased}/${UpgradeRegistry.miningUpgrades.size})".yellow,
             Material.STONE_PICKAXE,
             getLore(block.getNumMiningAffordable(player), block.numMiningDisabled))
         ) {
@@ -43,7 +43,7 @@ class UpgradeMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Upgrades"
         }
 
         SimpleButton(15, createIcon(
-            "Building".green() + " (${block.numBuildingPurchased}/${UpgradeRegistry.buildingUpgrades.size})".yellow(),
+            "Building".green + " (${block.numBuildingPurchased}/${UpgradeRegistry.buildingUpgrades.size})".yellow,
             Material.ANDESITE,
             getLore(block.getNumBuildingAffordable(player), block.numBuildingDisabled))
         ) {

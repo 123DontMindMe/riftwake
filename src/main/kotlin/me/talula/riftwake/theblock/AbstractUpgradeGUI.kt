@@ -16,7 +16,7 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
     private var upgradeButtons = mutableListOf<UpgradeButton>()
 
     init {
-        SimpleButton((numRows - 1) * 9, createIcon("Back".yellow(), Material.ARROW)) {
+        SimpleButton((numRows - 1) * 9, createIcon("Back".yellow, Material.ARROW)) {
             UpgradeMenuGUI(player).open()
             player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1.0f, 1.0f)
         }
@@ -50,9 +50,9 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
             val disabled = block.isDisabled(upgrade)
 
             val name = if (disabled)
-                Components.join(upgrade.name.strikethrough(), " (Disabled) ".red(), "(Level ${currentLevel + 1})".gray())
+                Components.join(upgrade.name.strikethrough, " (Disabled) ".red, "(Level ${currentLevel + 1})".gray)
             else
-                upgrade.name + " (Level ${currentLevel + 1})".gray()
+                upgrade.name + " (Level ${currentLevel + 1})".gray
 
             val lore = mutableListOf<Component>()
             lore += "<YELLOW|<>% → <>% chance>".parseLore(weight.maxPlaces(2), (weight + upgrade.weightPerLevel).maxPlaces(2))
@@ -65,9 +65,9 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
 
             if (currentLevel > 0) {
                 lore += if (disabled)
-                    "Right-click to re-enable".green().unitalic()
+                    "Right-click to re-enable".green.unitalic
                 else
-                    "Right-click to disable".darkGray().unitalic()
+                    "Right-click to disable".darkGray.unitalic
             }
 
             return createIcon(name, upgrade.icon, currentLevel + 1, lore)

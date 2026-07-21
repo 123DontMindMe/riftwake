@@ -3,4 +3,4 @@ version: '1.0'
 main: me.talula.riftwake.Riftwake
 api-version: '1.21'
 load: STARTUP
-depend: [ packetevents ]
+depend: [ packetevents, LuckPerms ]

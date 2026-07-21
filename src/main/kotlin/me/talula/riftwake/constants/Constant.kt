@@ -14,12 +14,12 @@ abstract class Constant<T>(val name: String, val type: String) {
         val file = Riftwake.getConfig("config.yml")
 
         fun init() {
-            Riftwake.instance.registerCommand(Commands.literal("config")
+            Riftwake.registerCommand(Commands.literal("config")
                 .requires { ctx -> ctx.sender.isOp }
                 .then(Commands.literal("save")
                     .executes { ctx ->
                         Riftwake.saveConfig(file, "config.yml")
-                        ctx.source.sender.sendMessage("Config values saved to file.".green())
+                        ctx.source.sender.sendMessage("Config values saved to file.".green)
                         1
                     }
                 )
@@ -28,7 +28,7 @@ abstract class Constant<T>(val name: String, val type: String) {
                         for ((name, constant) in constants) {
                             val string = file.getString(name)
                             if (string == null) {
-                                ctx.source.sender.sendMessage("Config value $name was not set.".red())
+                                ctx.source.sender.sendMessage("Config value $name was not set.".red)
                                 continue
                             }
                             if (!constant.set(string, isFromFile=true)) {
@@ -36,7 +36,7 @@ abstract class Constant<T>(val name: String, val type: String) {
                                 continue
                             }
                         }
-                        ctx.source.sender.sendMessage("Config loaded from file successfully.".green())
+                        ctx.source.sender.sendMessage("Config loaded from file successfully.".green)
                         1
                     }
                 )
@@ -51,7 +51,7 @@ abstract class Constant<T>(val name: String, val type: String) {
                             val name = ctx.getArgument("name", String::class.java)
                             val constant = constants[name]
                             if (constant == null) {
-                                ctx.source.sender.sendMessage(("Key '" + name + "' does not exist.").red())
+                                ctx.source.sender.sendMessage(("Key '" + name + "' does not exist.").red)
                                 return@executes 0
                             }
                             ctx.source.sender.sendMessage("Current value: " + constant.serialize())
@@ -63,15 +63,16 @@ abstract class Constant<T>(val name: String, val type: String) {
                                 val value = ctx.getArgument("value", String::class.java)
                                 val constant = constants[name]
                                 if (constant == null) {
-                                    ctx.source.sender.sendMessage(("Key '" + name + "' does not exist.").red())
+                                    ctx.source.sender.sendMessage(("Key '" + name + "' does not exist.").red)
                                     return@executes 0
                                 }
-                                if (constant.set(value)) {
+                                if (!constant.set(value)) {
                                     ctx.source.sender.sendMessage(
-                                        "'${value}' is not a valid value for key of type ${constant.type}.".red())
+                                        "'${value}' is not a valid value for key of type ${constant.type}.".red
+                                    )
                                     return@executes 0
                                 }
-                                ctx.source.sender.sendMessage("$name set to $value".green())
+                                ctx.source.sender.sendMessage("$name set to $value".green)
                                 1
                             }
                         )

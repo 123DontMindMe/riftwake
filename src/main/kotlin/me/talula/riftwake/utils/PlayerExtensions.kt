@@ -4,42 +4,74 @@ import com.github.retrooper.packetevents.PacketEvents
 import com.github.retrooper.packetevents.wrapper.PacketWrapper
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
-import org.bukkit.Location
-import org.bukkit.Material
-import org.bukkit.NamespacedKey
-import org.bukkit.OfflinePlayer
-import org.bukkit.Sound
-import org.bukkit.SoundCategory
+import net.luckperms.api.model.user.User
+import net.luckperms.api.node.NodeType
+import net.luckperms.api.node.types.MetaNode
+import org.bukkit.*
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.inventory.ItemStack
+import org.bukkit.persistence.PersistentDataHolder
 import org.bukkit.persistence.PersistentDataType
+import java.util.concurrent.CompletableFuture
 
-fun OfflinePlayer.riftwake(): RiftwakePlayer? = Riftwake.playerRegistry[this]
-fun RiftwakePlayer.riftwake(): RiftwakePlayer = this
-fun CommandSender.riftwake() : RiftwakePlayer? = (this as OfflinePlayer?)?.riftwake()
+
+val OfflinePlayer.riftwake get() = Riftwake.playerRegistry[this]
+val RiftwakePlayer.riftwake get() = this
+val CommandSender.riftwake get() = (this as OfflinePlayer?)?.riftwake
 
 // should use when passing in a potential RiftwakePlayer into a Paper method, since it usually
 // attempts to cast it to a CraftPlayer
-fun Player.craft(): Player {
-    return if (this is RiftwakePlayer) craftPlayer else this
+val Player.craft: Player get() = if (this is RiftwakePlayer) craftPlayer else this
+
+val Player.luckPermsUser: User get() = Riftwake.luckPerms.getPlayerAdapter(Player::class.java).getUser(craft)
+
+fun OfflinePlayer.getBalance(): CompletableFuture<Long> {
+    return Riftwake.luckPerms.userManager.loadUser(uniqueId).thenApplyAsync { user ->
+        user.cachedData.metaData.getMetaValue("balance", String::toLong).orElse(0)
+    }
 }
 
-fun <P: Any, C: Any> Player.getData(key: String, type: PersistentDataType<P, C>): C? {
+fun OfflinePlayer.setBalance(balance: Long): CompletableFuture<Void> {
+    return Riftwake.luckPerms.userManager.modifyUser(uniqueId) { user ->
+        user.data().clear(NodeType.META.predicate { it.metaKey == "balance" })
+        user.data().add(MetaNode.builder("balance", balance.toString()).build())
+    }
+}
+
+fun <P: Any, C: Any> PersistentDataHolder.hasData(key: String, type: PersistentDataType<P, C>): Boolean {
+    return persistentDataContainer.has(NamespacedKey("riftwake", key), type)
+}
+
+fun <P: Any, C: Any> PersistentDataHolder.getData(key: String, type: PersistentDataType<P, C>): C? {
     return persistentDataContainer.get(NamespacedKey("riftwake", key), type)
 }
 
-fun <P: Any, C: Any> Player.setData(key: String, type: PersistentDataType<P, C>, value: C?) {
+fun <P: Any, C: Any> PersistentDataHolder.setData(key: String, type: PersistentDataType<P, C>, value: C?): C? {
     if (value == null)
         persistentDataContainer.remove(NamespacedKey("riftwake", key))
     else
         persistentDataContainer.set(NamespacedKey("riftwake", key), type, value)
+    return value
 }
 
-fun Player.sendPacket(packet: PacketWrapper<*>) {
-    PacketEvents.getAPI().playerManager.sendPacket(craft(), packet)
+fun <P: Any, C: Any> PersistentDataHolder.setDataFromString(key: String, type: PersistentDataType<P, C>, string: String): C? {
+    return setData(key, type, type.parse(string))
 }
+
+fun <P: Any, C: Any> PersistentDataHolder.setDataIfPresent(key: String, type: PersistentDataType<P, C>, value: C?): PersistentDataType<P, C> {
+    val dataKey = NamespacedKey("riftwake", key)
+    if (value == null)
+        persistentDataContainer.remove(dataKey)
+    else if (persistentDataContainer.has(dataKey))
+        persistentDataContainer.set(dataKey, type, value)
+    return type
+}
+
+fun Player.sendPacket(packet: PacketWrapper<*>) = PacketEvents.getAPI().playerManager.sendPacket(craft, packet)
+
+fun Player.lookLocation(distance: Double): Location = eyeLocation.add(eyeLocation.direction.multiply(distance))
 
 val Player.cursorLocation: Location
     get() {
@@ -107,5 +139,5 @@ fun Player.subtractItem(material: Material, amount: Int): Boolean {
 }
 
 fun Player.playSound(sound: Sound, category: SoundCategory, volume: Float, pitch: Float) {
-    playSound(craft(), sound, category, volume, pitch)
+    playSound(craft, sound, category, volume, pitch)
 }

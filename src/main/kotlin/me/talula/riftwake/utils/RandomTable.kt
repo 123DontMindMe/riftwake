@@ -1,7 +1,73 @@
 package me.talula.riftwake.utils
 
+import org.bukkit.Material
 import java.util.*
 import kotlin.collections.set
+
+class LayerTable {
+    interface Entry { fun onPull(layer: Layer, results: MutableMap<Layer, Material>) }
+
+    class BlockEntry(val block: Material): Entry {
+        override fun onPull(layer: Layer, results: MutableMap<Layer, Material>) {
+            results[layer] = block
+        }
+    }
+
+    inner class CopyEntry(val copyLayer: Layer): Entry {
+        override fun onPull(layer: Layer, results: MutableMap<Layer, Material>) {
+            if (copyLayer !in results) {
+                var pull = tables[copyLayer]!!.pull()
+                while (pull !is BlockEntry)
+                    pull = tables[copyLayer]!!.pull()
+                pull.onPull(copyLayer, results)
+            }
+            results[copyLayer] = results[layer]!!
+        }
+    }
+
+    enum class Layer {
+        LEAVES,
+        WOOD,
+        GRASS,
+        FLORA,
+        DIRT,
+        ALT_DIRT,
+        CROPS,
+        FARMLAND,
+        LIQUID,
+        STONE,
+        ALT_STONE,
+        ORE,
+        BUILDING_BLOCK,
+    }
+
+    val tables = EnumMap<Layer, RandomTable<Entry>>(Layer::class.java)
+
+    init {
+        for (layer in Layer.entries)
+            tables[layer] = RandomTable()
+    }
+
+    fun add(layer: Layer, weight: Double, entry: Entry) {
+        tables[layer]!!.add(entry, weight)
+    }
+
+    fun add(layer: Layer, weight: Double, block: Material) {
+        tables[layer]!!.add(BlockEntry(block), weight)
+    }
+
+    fun add(layer: Layer, weight: Double, copy: Layer) {
+        tables[layer]!!.add(CopyEntry(copy), weight)
+    }
+
+    fun pull(): Map<Layer, Material> {
+        val results = EnumMap<Layer, Material>(Layer::class.java)
+        for (layer in tables.keys)
+            if (layer !in results)
+                tables[layer]!!.pull().onPull(layer, results)
+        return results
+    }
+}
 
 class TieredTable<E> {
     inner class Entry(val value: E, val chance: Double)

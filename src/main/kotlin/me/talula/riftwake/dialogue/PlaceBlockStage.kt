@@ -63,7 +63,7 @@ class PlaceBlockStage: DialogueStage() {
         // must be done sync
         Riftwake.runTask {
             player.block.setBlockLocation(location)
-            player.sendMessage("Block placed at (${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}).".green())
+            player.sendMessage("Block placed at (${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}).".green)
         }
         player.dialogue.advance()
     }

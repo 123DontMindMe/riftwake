@@ -27,7 +27,7 @@ object TheBlockRegistry {
                 register(TheBlock(uuid, file.getConfigurationSection(key)!!))
             } catch (error: ConfigurationException) {
                 val owner = Riftwake.instance.server.getOfflinePlayer(uuid)
-                Riftwake.broadcastToOperators("error in ${owner.name}'s data (uuid=${owner.uniqueId}) in blocks.yml: ${error.message}".red())
+                Riftwake.broadcastToOperators("error in ${owner.name}'s data (uuid=${owner.uniqueId}) in blocks.yml: ${error.message}".red)
                 continue
             }
         }
