@@ -24,6 +24,7 @@ import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.event.player.PlayerToggleSneakEvent
 import org.bukkit.inventory.ItemStack
 import java.util.concurrent.CompletableFuture
@@ -32,6 +33,7 @@ import kotlin.jvm.optionals.getOrDefault
 class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val onRemove = Event<RemoveReason>()
     val onMove = Event<PlayerMoveEvent>()
+    val onTeleport = Event<PlayerTeleportEvent>()
     val onPhysicalInteract = Event<PlayerInteractEvent>()
     val onRightClickEntity = Event<PlayerInteractEntityEvent>()
     val onInteractPacketEntity = Event<WrapperPlayClientInteractEntity>()

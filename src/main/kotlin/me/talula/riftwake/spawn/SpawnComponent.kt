@@ -4,6 +4,7 @@ import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.constants.NumConstant
 import me.talula.riftwake.constants.TimeConstant
+import me.talula.riftwake.utils.craft
 import me.talula.riftwake.utils.playSound
 import me.talula.riftwake.utils.plus
 import me.talula.riftwake.utils.red
@@ -29,10 +30,28 @@ class SpawnComponent(val player: RiftwakePlayer) {
             "You can't drop items in spawn. Use ".red + "/trash".yellow + " to dispose of items.".red
     }
 
-    val isInSpawn get() = player.location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
+    var isInSpawn = player.location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
+        private set
+
     fun isInSpawn(location: Location) = location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
 
     init {
+        player.onMove += { event ->
+            isInSpawn = isInSpawn(event.to)
+            if (isInSpawn)
+                Riftwake.server.scoreboardManager.mainScoreboard.getTeam("in-spawn")?.addPlayer(player.craft)
+            else
+                Riftwake.server.scoreboardManager.mainScoreboard.getTeam("in-spawn")?.removePlayer(player.craft)
+        }
+
+        player.onTeleport += { event ->
+            isInSpawn = isInSpawn(event.to)
+            if (isInSpawn)
+                Riftwake.server.scoreboardManager.mainScoreboard.getTeam("in-spawn")?.addPlayer(player.craft)
+            else
+                Riftwake.server.scoreboardManager.mainScoreboard.getTeam("in-spawn")?.removePlayer(player.craft)
+        }
+
         player.onBreakBlock += { event ->
             if (player.gameMode == GameMode.SURVIVAL && (isInSpawn || isInSpawn(event.block.location)))
                 event.isCancelled = true

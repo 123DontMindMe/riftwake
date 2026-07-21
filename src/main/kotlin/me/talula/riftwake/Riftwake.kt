@@ -49,6 +49,7 @@ import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.*
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
+import org.bukkit.scoreboard.Team
 import java.io.File
 import java.io.FileInputStream
 
@@ -122,6 +123,12 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
         server.pluginManager.registerEvents(this, this)
         PacketEvents.getAPI().eventManager.registerListener(this, PacketListenerPriority.NORMAL)
+
+        val scoreboard = server.scoreboardManager.mainScoreboard
+        if (scoreboard.getTeam("in-spawn") == null) {
+            val team = scoreboard.registerNewTeam("in-spawn")
+            team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER)
+        }
 
         registerCommand(Commands.literal("pdc")
             .requires { ctx -> ctx.sender.isOp }
@@ -603,6 +610,11 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     @EventHandler
     fun onPlayerMove(event: PlayerMoveEvent) {
         playerRegistry[event.player]?.onMove(event)
+    }
+
+    @EventHandler
+    fun onPlayerTeleport(event: PlayerTeleportEvent) {
+        playerRegistry[event.player]?.onTeleport(event)
     }
 
     @EventHandler
