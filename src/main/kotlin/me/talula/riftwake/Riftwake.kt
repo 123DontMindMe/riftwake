@@ -9,13 +9,6 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientIn
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats
-import com.sk89q.worldedit.function.mask.BlockTypeMask
-import com.sk89q.worldedit.function.operation.Operations
-import com.sk89q.worldedit.math.BlockVector3
-import com.sk89q.worldedit.regions.CuboidRegion
-import com.sk89q.worldedit.session.ClipboardHolder
-import com.sk89q.worldedit.world.block.BlockTypes
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
 import io.papermc.paper.event.player.AsyncChatEvent
@@ -23,6 +16,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import me.talula.riftwake.constants.Constant
 import me.talula.riftwake.dialogue.PlaceBlockStage
 import me.talula.riftwake.economy.AuctionRegistry
+import me.talula.riftwake.islands.Structures
 import me.talula.riftwake.items.Items
 import me.talula.riftwake.theblock.TheBlockRegistry
 import me.talula.riftwake.theblock.UpgradeMenuGUI
@@ -48,10 +42,7 @@ import org.bukkit.event.player.*
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.scoreboard.Team
-import org.bukkit.util.BoundingBox
-import org.bukkit.util.Vector
 import java.io.File
-import java.io.FileInputStream
 
 
 class Riftwake : JavaPlugin(), Listener, PacketListener {
@@ -305,122 +296,9 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             )
         )
 
-        registerCommand(Commands.literal("placestructures")
-            .executes { ctx ->
-                val player = ctx.source.sender.riftwake ?: return@executes 0
-                val layerTable = LayerTable()
-
-                val file = File(dataFolder, "structures/islandtemplate3.schem")
-                val format = ClipboardFormats.findByPath(file.toPath())
-                if (format == null) {
-                    player.sendMessage("Schematic file not found.".red)
-                    return@executes 0
-                }
-                val reader = format.getReader(FileInputStream(file))
-
-                val worldRadiusInChunks = Math.floorDiv(Math.ceilDiv(500, 16), 16) * 16
-
-                reader.use { reader ->
-                    val clipboard = reader.read()
-                    val halfWidthX = clipboard.dimensions.x() / 2
-                    val halfWidthZ = clipboard.dimensions.z() / 2
-
-                    var gridChunkX = -worldRadiusInChunks
-                    var gridChunkZ = -worldRadiusInChunks
-                    var i = 0
-                    var created = 0
-
-                    fun createIsland(): Boolean {
-                        i++
-                        if (gridChunkX in -1..1 || gridChunkZ in -1..1 || Math.random() > 0.9) {
-                            gridChunkZ += 16
-                            if (gridChunkZ > worldRadiusInChunks) {
-                                gridChunkZ = 0
-                                gridChunkX += 16
-                            }
-                            return false
-                        }
-                        
-                        val chunkXOffset = (Math.random() * 10).toInt() - 5
-                        val chunkZOffset = (Math.random() * 10).toInt() - 5
-                        val actualChunkX = gridChunkX + chunkXOffset
-                        val actualChunkZ = gridChunkZ + chunkZOffset
-                        val centerX = actualChunkX * 16
-                        val centerZ = actualChunkZ * 16
-                        val y = (Math.random() * 100).toInt() - 63 + clipboard.dimensions.y()
-                        val to = BlockVector3(centerX + halfWidthX, y, centerZ + halfWidthZ)
-
-                        player.craft.sendActionBar("$i grid points, $created created, creating at chunk ($gridChunkX, $gridChunkZ), coords ($centerX, $y, $centerZ)...".yellow)
-
-                        val layers = layerTable.pull()
-
-                        val boundStart = to.add(1, 1, 1)
-                        val boundEnd = boundStart.subtract(clipboard.dimensions)
-                        val chunks = world.getIntersectingChunks(BoundingBox.of(
-                            Vector(boundStart.x(), boundStart.y(), boundStart.z()),
-                            Vector(boundEnd.x(), boundEnd.y(), boundEnd.z()))
-                        )
-
-                        for (chunk in chunks)
-                            world.loadChunk(chunk)
-
-                        world.edit { session ->
-                            Operations.complete(ClipboardHolder(clipboard)
-                                .createPaste(session)
-                                .to(to)
-                                .ignoreAirBlocks(true)
-                                .build())
-                        }
-                        world.setType(to.x(), to.y(), to.z(), Material.AIR)
-                        world.setType(boundEnd.x(), boundEnd.y(), boundEnd.z(), Material.AIR)
-
-                        for ((layer, block) in layers)
-                            world.edit { session ->
-                                session.replaceBlocks(
-                                    CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                    BlockTypeMask(session, layer.replaceBlock),
-                                    block
-                                )
-                            }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.YELLOW_GLAZED_TERRACOTTA),
-                                BlockTypes.FARMLAND!!.defaultState
-                            )
-                        }
-
-                        for (chunk in chunks)
-                            world.unloadChunk(chunk)
-
-                        created++
-                        println("$i grid points, $created created, at chunk ($actualChunkX, $actualChunkZ), coords ($centerX, $y, $centerZ)")
-                        player.craft.sendActionBar("$i grid points, $created created, at chunk ($actualChunkX, $actualChunkZ), coords ($centerX, $y, $centerZ)".green)
-                        gridChunkZ += 16
-                        if (gridChunkZ > worldRadiusInChunks) {
-                            gridChunkZ = -worldRadiusInChunks
-                            gridChunkX += 16
-                        }
-                        return true
-                    }
-
-                    fun step() {
-                        while (gridChunkX <= worldRadiusInChunks && !createIsland()) {}
-                        if (gridChunkX > worldRadiusInChunks) {
-                            player.sendMessage("DONE: $i grid points, $created created".green)
-                            return
-                        }
-                        runTaskLater(5) { step() }
-                    }
-
-                    step()
-                }
-                1
-            }
-        )
-
         Constant.init()
         AuctionRegistry.init()
+        Structures.init()
     }
 
     override fun onDisable() {
