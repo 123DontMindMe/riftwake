@@ -8,6 +8,7 @@ import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
+import org.bukkit.inventory.ItemStack
 import org.bukkit.util.Vector
 
 class TheBlockComponent(val player: RiftwakePlayer) {
@@ -17,10 +18,15 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         player.onBreakBlock += blockBreak@{ event ->
             val block = TheBlockRegistry.blocksByLocation[event.block] ?: return@blockBreak
             event.isDropItems = false
-            // even though RiftwakePlayer implements Player, some Paper methods like this one explicitly
-            // cast the Player to a CraftPlayer (which a RiftwakePlayer obviously isn't), hence passing in
-            // the craftPlayer being required
-            for (drop in event.getBlock().getDrops(player.inventory.itemInMainHand, player.craftPlayer)) {
+            val drops = if (event.block.type == Material.AMETHYST_BLOCK)
+                listOf(ItemStack.of(Material.AMETHYST_SHARD, 4))
+            else
+                // even though RiftwakePlayer implements Player, some Paper methods like this one explicitly
+                // cast the Player to a CraftPlayer (which a RiftwakePlayer obviously isn't), hence passing in
+                // the craftPlayer being required
+                event.block.getDrops(player.inventory.itemInMainHand, player.craftPlayer)
+
+            for (drop in drops) {
                 val item = player.world.dropItem(block.location.toCenterLocation().add(0.0, 0.5, 0.0), drop)
                 item.velocity = Vector(
                     Math.random() * 0.2 - 0.1,

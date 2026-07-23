@@ -48,6 +48,8 @@ import org.bukkit.event.player.*
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.scoreboard.Team
+import org.bukkit.util.BoundingBox
+import org.bukkit.util.Vector
 import java.io.File
 import java.io.FileInputStream
 
@@ -352,9 +354,15 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
                         val layers = layerTable.pull()
 
-                        for (surroundingChunkX in (actualChunkX - 2)..(actualChunkX + 2))
-                            for (surroundingChunkZ in (actualChunkZ - 2)..(actualChunkZ + 2))
-                                world.loadChunk(surroundingChunkX, surroundingChunkZ)
+                        val boundStart = to.add(1, 1, 1)
+                        val boundEnd = boundStart.subtract(clipboard.dimensions)
+                        val chunks = world.getIntersectingChunks(BoundingBox.of(
+                            Vector(boundStart.x(), boundStart.y(), boundStart.z()),
+                            Vector(boundEnd.x(), boundEnd.y(), boundEnd.z()))
+                        )
+
+                        for (chunk in chunks)
+                            world.loadChunk(chunk)
 
                         world.edit { session ->
                             Operations.complete(ClipboardHolder(clipboard)
@@ -363,9 +371,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                                 .ignoreAirBlocks(true)
                                 .build())
                         }
-                        val end = to.add(clipboard.dimensions).subtract(1, 1, 1)
                         world.setType(to.x(), to.y(), to.z(), Material.AIR)
-                        world.setType(end.x(), end.y(), end.z(), Material.AIR)
+                        world.setType(boundEnd.x(), boundEnd.y(), boundEnd.z(), Material.AIR)
 
                         for ((layer, block) in layers)
                             world.edit { session ->
@@ -383,9 +390,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                             )
                         }
 
-                        for (surroundingChunkX in (actualChunkX - 2)..(actualChunkX + 2))
-                            for (surroundingChunkZ in (actualChunkZ - 2)..(actualChunkZ + 2))
-                                world.unloadChunk(surroundingChunkX, surroundingChunkZ)
+                        for (chunk in chunks)
+                            world.unloadChunk(chunk)
 
                         created++
                         println("$i grid points, $created created, at chunk ($actualChunkX, $actualChunkZ), coords ($centerX, $y, $centerZ)")

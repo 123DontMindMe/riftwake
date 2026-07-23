@@ -37,12 +37,12 @@ class AuctionConfirmSellGUI(player: RiftwakePlayer, val sellItem: ItemStack, val
             0 -> {
                 val index = player.inventory.first(sellItem)
                 if (index == -1) {
-                    player.inventory.setItem(index, null)
                     close()
                     player.sendMessage("Sell failed; the item wasn't in your inventory.".red)
                     player.playSound(Sound.ENTITY_VILLAGER_NO, SoundCategory.UI, 1f, 1f)
                     return
                 }
+                player.inventory.setItem(index, null)
                 AuctionRegistry.items += AuctionItem(player, sellItem, cost, AuctionRegistry.sellDuration())
                 close()
                 player.sendMessage(Component.translatable(sellItem) + " put up for auction for $cost.".green)
