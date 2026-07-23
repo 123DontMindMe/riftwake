@@ -1,70 +1,220 @@
 package me.talula.riftwake.utils
 
-import org.bukkit.Material
+import com.sk89q.worldedit.world.block.BlockState
+import com.sk89q.worldedit.world.block.BlockType
+import com.sk89q.worldedit.world.block.BlockTypes
+import me.talula.riftwake.Riftwake
 import java.util.*
 import kotlin.collections.set
 
 class LayerTable {
-    interface Entry { fun onPull(layer: Layer, results: MutableMap<Layer, Material>) }
+    interface Entry { fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) }
+    interface ConcreteEntry: Entry { val block: BlockState }
 
-    class BlockEntry(val block: Material): Entry {
-        override fun onPull(layer: Layer, results: MutableMap<Layer, Material>) {
+    class BlockEntry(override val block: BlockState): ConcreteEntry {
+        override fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) {
             results[layer] = block
         }
     }
 
     inner class CopyEntry(val copyLayer: Layer): Entry {
-        override fun onPull(layer: Layer, results: MutableMap<Layer, Material>) {
-            if (copyLayer !in results) {
-                var pull = tables[copyLayer]!!.pull()
-                while (pull !is BlockEntry)
-                    pull = tables[copyLayer]!!.pull()
-                pull.onPull(copyLayer, results)
-            }
-            results[copyLayer] = results[layer]!!
+        override fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) {
+            if (copyLayer !in results)
+                pullConcreteFromTable(copyLayer).resolve(copyLayer, results)
+            results[layer] = results[copyLayer]!!
         }
     }
 
-    enum class Layer {
-        LEAVES,
-        WOOD,
-        GRASS,
-        FLORA,
-        DIRT,
-        ALT_DIRT,
-        CROPS,
-        FARMLAND,
-        LIQUID,
-        STONE,
-        ALT_STONE,
-        ORE,
-        BUILDING_BLOCK,
+    inner class PullEntry(val pullLayer: Layer): Entry {
+        override fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) {
+            results[layer] = pullConcreteFromTable(pullLayer).block
+        }
     }
 
-    val tables = EnumMap<Layer, RandomTable<Entry>>(Layer::class.java)
+    class WoodEntry(override val block: BlockState, val leaves: BlockState): ConcreteEntry {
+        override fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) {
+            results[layer] = block
+            if (Layer.LEAVES !in results)
+                results[Layer.LEAVES] = leaves
+        }
+    }
+
+    inner class DefaultLeavesEntry: Entry {
+        override fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) {
+            getTable(Layer.WOOD).pull().resolve(Layer.WOOD, results)
+        }
+    }
+
+    inner class PullLeavesEntry(val pullLayer: Layer): Entry {
+        override fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) {
+            results[layer] = pullWoodFromTable(pullLayer).leaves
+        }
+    }
+
+    enum class Layer(val replaceBlock: BlockType) {
+        LEAVES(BlockTypes.RED_WOOL!!),  // must be at top for non-default leaves to work, otherwise a wood/copy-of-wood entry could set leaves
+        WOOD(BlockTypes.ORANGE_WOOL!!),
+        ALT_DIRT(BlockTypes.WHITE_WOOL!!),
+        ALT_STONE(BlockTypes.GRAY_WOOL!!),
+        BUILDING_BLOCK(BlockTypes.PURPLE_WOOL!!),
+        CROPS(BlockTypes.YELLOW_WOOL!!),
+        DIRT(BlockTypes.BROWN_WOOL!!),
+        GRASS(BlockTypes.GREEN_WOOL!!),
+        LIQUID(BlockTypes.WATER!!),
+        ORE(BlockTypes.LIGHT_BLUE_WOOL!!),
+        STONE(BlockTypes.LIGHT_GRAY_WOOL!!),
+        VEGETATION(BlockTypes.LIME_WOOL!!)
+    }
+
+    val entryFormat = Regex("(.+?)(?::(.+?))?(?:\\[(.+)=(.+)])? ([0-9]+)")
+    val colors = arrayOf(
+        "WHITE", "LIGHT_GRAY", "GRAY", "BLACK",
+        "RED", "ORANGE", "YELLOW", "LIME",
+        "GREEN", "LIGHT_BLUE", "CYAN", "BLUE",
+        "PURPLE", "MAGENTA", "PINK", "BROWN"
+    )
+    val tables = arrayOf<RandomTable<Entry>>(
+        readWeights("structures/weights/leaves-weights.txt"),
+        readWeights("structures/weights/wood-weights.txt"),
+        readWeights("structures/weights/alt-dirt-weights.txt"),
+        readWeights("structures/weights/alt-stone-weights.txt"),
+        readWeights("structures/weights/building-block-weights.txt"),
+        readWeights("structures/weights/crops-weights.txt"),
+        readWeights("structures/weights/dirt-weights.txt"),
+        readWeights("structures/weights/grass-weights.txt"),
+        readWeights("structures/weights/liquid-weights.txt"),
+        readWeights("structures/weights/ore-weights.txt"),
+        readWeights("structures/weights/stone-weights.txt"),
+        readWeights("structures/weights/vegetation-weights.txt"),
+    )
 
     init {
-        for (layer in Layer.entries)
-            tables[layer] = RandomTable()
+        getTable(Layer.WOOD).add(object : Entry {
+            override fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) {
+                pullConcreteFromTable(Layer.BUILDING_BLOCK).resolve(layer, results)
+                pullConcreteFromTable(Layer.BUILDING_BLOCK).resolve(Layer.LEAVES, results)
+            }
+        }, 1.0)
+    }
+
+    private fun readWeights(fileName: String): RandomTable<Entry> {
+        val table = RandomTable<Entry>()
+        for ((index, line) in Riftwake.getFile(fileName).readLines().withIndex()) {
+            val (entryType, other, stateKey, stateValue, weight) = entryFormat.matchEntire(line.trim())?.destructured ?:
+                throw ConfigurationException("weight file $fileName incorrectly formatted on line ${index + 1}: $line")
+
+            val entryWeight = try { weight.toDouble() } catch (_: NumberFormatException) {
+                throw ConfigurationException(
+                    "weight file $fileName has invalid weight '$weight' on line ${index + 1}: '$line'")
+            }
+
+            when (entryType) {
+                "COPY" -> {
+                    val copyFromLayer = try { Layer.valueOf(other) } catch (_: IllegalArgumentException) {
+                        throw ConfigurationException(
+                            "weight file $fileName copies unknown layer '$other' on line ${index + 1}: '$line'")
+                    }
+                    table.add(CopyEntry(copyFromLayer), entryWeight)
+                }
+                "COPYNEW" -> {
+                    val pullFromLayer = try { Layer.valueOf(other) } catch (_: IllegalArgumentException) {
+                        throw ConfigurationException(
+                            "weight file $fileName pulls from unknown layer '$other' on line ${index + 1}: '$line'")
+                    }
+                    table.add(PullEntry(pullFromLayer), entryWeight)
+                }
+                "COPYNEWLEAVES" -> {
+                    val pullFromLayer = try { Layer.valueOf(other) } catch (_: IllegalArgumentException) {
+                        throw ConfigurationException(
+                            "weight file $fileName pulls leaves from unknown layer '$other' on line ${index + 1}: '$line'")
+                    }
+                    table.add(PullLeavesEntry(pullFromLayer), entryWeight)
+                }
+                "RANDOMCOLOR" -> {
+                    for (color in colors) {
+                        val blockType = BlockTypes.get(color.lowercase() + "_" + other.lowercase()) ?:
+                            throw ConfigurationException(
+                                "weight file $fileName has unknown block type '$other' on line ${index + 1}: '$line'")
+
+                        if (stateKey.isEmpty())
+                            table.add(BlockEntry(blockType.defaultState), entryWeight / colors.size)
+                        else {
+                            val property = blockType.getProperty<Any>(stateKey)
+                            val blockState = blockType.defaultState.with(property, property.getValueFor(stateValue))
+                            table.add(BlockEntry(blockState), entryWeight / colors.size)
+                        }
+                    }
+                }
+                "DEFAULT" -> table.add(DefaultLeavesEntry(), entryWeight)
+                else -> {
+                    val blockType = BlockTypes.get(entryType.lowercase()) ?:
+                        throw ConfigurationException(
+                            "weight file $fileName has unknown block type '$entryType' on line ${index + 1}: '$line'")
+
+                    if (other.isEmpty()) {
+                        val blockState = if (stateKey.isEmpty())
+                            blockType.defaultState
+                        else {
+                            val property = blockType.getProperty<Any>(stateKey)
+                            blockType.defaultState.with(property, property.getValueFor(stateValue))
+                        }
+                        table.add(BlockEntry(blockState), entryWeight)
+                    }
+                    else {
+                        val leavesType = BlockTypes.get(other.lowercase()) ?:
+                            throw ConfigurationException(
+                                "weight file $fileName has unknown leaves type '$other' on line ${index + 1}: '$line'")
+
+                        val leavesState = if (stateKey.isEmpty())
+                            leavesType.defaultState
+                        else {
+                            val property = leavesType.getProperty<Any>(stateKey)
+                            leavesType.defaultState.with(property, property.getValueFor(stateValue))
+                        }
+
+                        table.add(WoodEntry(blockType.defaultState, leavesState), entryWeight)
+                    }
+                }
+            }
+        }
+        return table
+    }
+
+    private fun getTable(layer: Layer) = tables[layer.ordinal]
+    private fun pullConcreteFromTable(layer: Layer): ConcreteEntry {
+        var pull = getTable(layer).pull()
+        while (pull !is ConcreteEntry)
+            pull = getTable(layer).pull()
+        return pull
+    }
+    private fun pullWoodFromTable(layer: Layer): WoodEntry {
+        var pull = getTable(layer).pull()
+        while (pull !is WoodEntry)
+            pull = getTable(layer).pull()
+        return pull
     }
 
     fun add(layer: Layer, weight: Double, entry: Entry) {
-        tables[layer]!!.add(entry, weight)
+        getTable(layer).add(entry, weight)
     }
 
-    fun add(layer: Layer, weight: Double, block: Material) {
-        tables[layer]!!.add(BlockEntry(block), weight)
+    fun add(layer: Layer, weight: Double, block: BlockState) {
+        getTable(layer).add(BlockEntry(block), weight)
     }
 
-    fun add(layer: Layer, weight: Double, copy: Layer) {
-        tables[layer]!!.add(CopyEntry(copy), weight)
+    fun add(layer: Layer, weight: Double, block: BlockType?) {
+        getTable(layer).add(BlockEntry(block!!.defaultState), weight)
     }
 
-    fun pull(): Map<Layer, Material> {
-        val results = EnumMap<Layer, Material>(Layer::class.java)
-        for (layer in tables.keys)
+    fun add(layer: Layer, weight: Double, other: Layer, new: Boolean = false) {
+        getTable(layer).add(if (new) PullEntry(other) else CopyEntry(other), weight)
+    }
+
+    fun pull(): Map<Layer, BlockState> {
+        val results = EnumMap<Layer, BlockState>(Layer::class.java)
+        for (layer in Layer.entries)
             if (layer !in results)
-                tables[layer]!!.pull().onPull(layer, results)
+                getTable(layer).pull().resolve(layer, results)
         return results
     }
 }

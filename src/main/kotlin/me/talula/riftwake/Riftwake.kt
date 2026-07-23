@@ -15,7 +15,6 @@ import com.sk89q.worldedit.function.operation.Operations
 import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.regions.CuboidRegion
 import com.sk89q.worldedit.session.ClipboardHolder
-import com.sk89q.worldedit.util.SideEffect
 import com.sk89q.worldedit.world.block.BlockTypes
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
@@ -28,7 +27,6 @@ import me.talula.riftwake.items.Items
 import me.talula.riftwake.theblock.TheBlockRegistry
 import me.talula.riftwake.theblock.UpgradeMenuGUI
 import me.talula.riftwake.utils.*
-import me.talula.riftwake.utils.LayerTable.Layer
 import net.kyori.adventure.text.Component
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.LuckPermsProvider
@@ -124,10 +122,12 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         server.pluginManager.registerEvents(this, this)
         PacketEvents.getAPI().eventManager.registerListener(this, PacketListenerPriority.NORMAL)
 
-        val scoreboard = server.scoreboardManager.mainScoreboard
-        if (scoreboard.getTeam("in-spawn") == null) {
-            val team = scoreboard.registerNewTeam("in-spawn")
-            team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER)
+        runTask {
+            val scoreboard = server.scoreboardManager.mainScoreboard
+            if (scoreboard.getTeam("in-spawn") == null) {
+                val team = scoreboard.registerNewTeam("in-spawn")
+                team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER)
+            }
         }
 
         registerCommand(Commands.literal("pdc")
@@ -303,100 +303,11 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             )
         )
 
-        val layerTable = LayerTable()
-        layerTable.add(Layer.GRASS, 1.0, Material.GRASS_BLOCK)
-        layerTable.add(Layer.GRASS, 1.0, Material.PODZOL)
-        layerTable.add(Layer.GRASS, 1.0, Material.MYCELIUM)
-        layerTable.add(Layer.GRASS, 1.0, Material.DIRT_PATH)
-        layerTable.add(Layer.GRASS, 1.0, Material.FARMLAND)
-        layerTable.add(Layer.GRASS, 1.0, Material.STONE)
-        layerTable.add(Layer.GRASS, 1.0, Material.SCULK)
-        layerTable.add(Layer.GRASS, 1.0, Material.WARPED_NYLIUM)
-        layerTable.add(Layer.GRASS, 1.0, Material.CRIMSON_NYLIUM)
-        layerTable.add(Layer.GRASS, 1.0, Material.MOSS_BLOCK)
-        layerTable.add(Layer.GRASS, 1.0, Material.PALE_MOSS_BLOCK)
-        layerTable.add(Layer.GRASS, 1.0, Layer.DIRT)
-        layerTable.add(Layer.GRASS, 1.0, Layer.ALT_DIRT)
-        layerTable.add(Layer.GRASS, 1.0, Layer.STONE)
-        layerTable.add(Layer.GRASS, 1.0, Layer.BUILDING_BLOCK)
-        layerTable.add(Layer.GRASS, 1.0, Layer.LIQUID)
-
-        layerTable.add(Layer.DIRT, 1.0, Material.DIRT)
-        layerTable.add(Layer.DIRT, 1.0, Material.SAND)
-        layerTable.add(Layer.DIRT, 1.0, Material.RED_SAND)
-        layerTable.add(Layer.DIRT, 1.0, Material.MUD)
-        layerTable.add(Layer.DIRT, 1.0, Material.SNOW)
-        layerTable.add(Layer.DIRT, 1.0, Material.SOUL_SOIL)
-        layerTable.add(Layer.DIRT, 1.0, Material.WHITE_CONCRETE_POWDER)
-        layerTable.add(Layer.DIRT, 1.0, Layer.STONE)
-        layerTable.add(Layer.DIRT, 1.0, Layer.ALT_DIRT)
-        layerTable.add(Layer.DIRT, 1.0, Layer.BUILDING_BLOCK)
-
-        layerTable.add(Layer.STONE, 1.0, Material.STONE)
-        layerTable.add(Layer.STONE, 1.0, Material.DEEPSLATE)
-        layerTable.add(Layer.STONE, 1.0, Material.SANDSTONE)
-        layerTable.add(Layer.STONE, 1.0, Material.RED_SANDSTONE)
-        layerTable.add(Layer.STONE, 1.0, Material.NETHERRACK)
-        layerTable.add(Layer.STONE, 1.0, Material.END_STONE)
-        layerTable.add(Layer.STONE, 1.0, Material.WHITE_CONCRETE)
-        layerTable.add(Layer.STONE, 1.0, Material.WHITE_TERRACOTTA)
-        layerTable.add(Layer.STONE, 1.0, Material.BEDROCK)
-        layerTable.add(Layer.STONE, 1.0, Layer.DIRT)
-        layerTable.add(Layer.STONE, 1.0, Layer.ALT_STONE)
-        layerTable.add(Layer.STONE, 1.0, Layer.BUILDING_BLOCK)
-
-        layerTable.add(Layer.ORE, 1.0, Material.COAL_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.COPPER_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.IRON_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.GOLD_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.REDSTONE_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.EMERALD_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.LAPIS_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.DIAMOND_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.AMETHYST_BLOCK)
-        layerTable.add(Layer.ORE, 1.0, Material.NETHER_GOLD_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.NETHER_QUARTZ_ORE)
-        layerTable.add(Layer.ORE, 1.0, Material.ANCIENT_DEBRIS)
-
-        layerTable.add(Layer.LIQUID, 1.0, Material.WATER)
-        layerTable.add(Layer.LIQUID, 1.0, Material.AIR)
-        layerTable.add(Layer.LIQUID, 1.0, Material.LAVA)
-        layerTable.add(Layer.LIQUID, 1.0, Material.POWDER_SNOW)
-
-        layerTable.add(Layer.ORE, 1.0, Material.OAK_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.BIRCH_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.SPRUCE_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.JUNGLE_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.ACACIA_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.DARK_OAK_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.CHERRY_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.MANGROVE_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.CRIMSON_HYPHAE)
-        layerTable.add(Layer.ORE, 1.0, Material.WARPED_HYPHAE)
-        layerTable.add(Layer.ORE, 1.0, Material.PALE_OAK_WOOD)
-        layerTable.add(Layer.ORE, 1.0, Material.BROWN_MUSHROOM_BLOCK)
-        layerTable.add(Layer.ORE, 1.0, Material.RED_MUSHROOM_BLOCK)
-        layerTable.add(Layer.ORE, 1.0, Layer.BUILDING_BLOCK)
-
-        layerTable.add(Layer.FLORA, 1.0, Material.TUBE_CORAL)
-        layerTable.add(Layer.FLORA, 1.0, Material.BRAIN_CORAL)
-        layerTable.add(Layer.FLORA, 1.0, Material.SPRUCE_WOOD)
-        layerTable.add(Layer.FLORA, 1.0, Material.JUNGLE_WOOD)
-        layerTable.add(Layer.FLORA, 1.0, Material.ACACIA_WOOD)
-        layerTable.add(Layer.FLORA, 1.0, Material.DARK_OAK_WOOD)
-        layerTable.add(Layer.FLORA, 1.0, Material.CHERRY_WOOD)
-        layerTable.add(Layer.FLORA, 1.0, Material.MANGROVE_WOOD)
-        layerTable.add(Layer.FLORA, 1.0, Material.CRIMSON_HYPHAE)
-        layerTable.add(Layer.FLORA, 1.0, Material.WARPED_HYPHAE)
-        layerTable.add(Layer.FLORA, 1.0, Material.PALE_OAK_WOOD)
-        layerTable.add(Layer.FLORA, 1.0, Material.BROWN_MUSHROOM_BLOCK)
-        layerTable.add(Layer.FLORA, 1.0, Material.RED_MUSHROOM_BLOCK)
-        layerTable.add(Layer.FLORA, 1.0, Layer.BUILDING_BLOCK)
-
         registerCommand(Commands.literal("placestructures")
             .executes { ctx ->
-                SideEffect.UPDATE
                 val player = ctx.source.sender.riftwake ?: return@executes 0
+                val layerTable = LayerTable()
+
                 val file = File(dataFolder, "structures/islandtemplate3.schem")
                 val format = ClipboardFormats.findByPath(file.toPath())
                 if (format == null) {
@@ -427,7 +338,6 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                             }
                             return false
                         }
-
                         
                         val chunkXOffset = (Math.random() * 10).toInt() - 5
                         val chunkZOffset = (Math.random() * 10).toInt() - 5
@@ -440,6 +350,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
                         player.craft.sendActionBar("$i grid points, $created created, creating at chunk ($gridChunkX, $gridChunkZ), coords ($centerX, $y, $centerZ)...".yellow)
 
+                        val layers = layerTable.pull()
+
                         for (surroundingChunkX in (actualChunkX - 2)..(actualChunkX + 2))
                             for (surroundingChunkZ in (actualChunkZ - 2)..(actualChunkZ + 2))
                                 world.loadChunk(surroundingChunkX, surroundingChunkZ)
@@ -451,92 +363,23 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                                 .ignoreAirBlocks(true)
                                 .build())
                         }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.RED_WOOL),
-                                BlockTypes.OAK_LEAVES!!.getState(mapOf(
-                                    BlockTypes.OAK_LEAVES!!.getProperty<Boolean>("persistent") to true
-                                ))
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.ORANGE_WOOL),
-                                BlockTypes.OAK_WOOD!!.defaultState
-                            )
-                        }
+                        val end = to.add(clipboard.dimensions).subtract(1, 1, 1)
+                        world.setType(to.x(), to.y(), to.z(), Material.AIR)
+                        world.setType(end.x(), end.y(), end.z(), Material.AIR)
+
+                        for ((layer, block) in layers)
+                            world.edit { session ->
+                                session.replaceBlocks(
+                                    CuboidRegion(to, to.subtract(clipboard.dimensions)),
+                                    BlockTypeMask(session, layer.replaceBlock),
+                                    block
+                                )
+                            }
                         world.edit { session ->
                             session.replaceBlocks(
                                 CuboidRegion(to, to.subtract(clipboard.dimensions)),
                                 BlockTypeMask(session, BlockTypes.YELLOW_GLAZED_TERRACOTTA),
                                 BlockTypes.FARMLAND!!.defaultState
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.YELLOW_WOOL),
-                                BlockTypes.WHEAT!!.getState(mapOf(
-                                    BlockTypes.WHEAT!!.getProperty<Int>("age") to 7
-                                ))
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.GREEN_WOOL),
-                                BlockTypes.GRASS_BLOCK!!.defaultState
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.LIME_WOOL),
-                                BlockTypes.SHORT_GRASS!!.defaultState
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.BROWN_WOOL),
-                                BlockTypes.DIRT!!.defaultState
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.LIGHT_GRAY_WOOL),
-                                BlockTypes.STONE!!.defaultState
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.GRAY_WOOL),
-                                BlockTypes.ANDESITE!!.defaultState
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.WHITE_WOOL),
-                                BlockTypes.COARSE_DIRT!!.defaultState
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.LIGHT_BLUE_WOOL),
-                                BlockTypes.DIAMOND_ORE!!.defaultState
-                            )
-                        }
-                        world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.PURPLE_WOOL),
-                                BlockTypes.STONE_BRICKS!!.defaultState
                             )
                         }
 
@@ -566,7 +409,6 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
                     step()
                 }
-                player.sendMessage("Placed structure.".green)
                 1
             }
         )
