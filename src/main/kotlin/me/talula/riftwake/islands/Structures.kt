@@ -183,7 +183,7 @@ object Structures {
                                 player.sendMessage("Chest not found at (${chest.x()}, ${chest.y()}, ${chest.z()})".red)
                                 continue
                             }
-                            LootTables.SIMPLE_DUNGEON.lootTable.fillInventory(
+                            chestTable.pull().fillInventory(
                                 state.inventory,
                                 Random(),
                                 LootContext.Builder(chest.toLocation(Riftwake.world)).build()
