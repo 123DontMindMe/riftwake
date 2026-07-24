@@ -12,6 +12,7 @@ import me.talula.riftwake.spawn.SpawnComponent
 import me.talula.riftwake.theblock.TheBlockComponent
 import me.talula.riftwake.utils.luckPermsUser
 import me.talula.riftwake.utils.setBalance
+import net.kyori.adventure.text.Component
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
@@ -69,4 +70,6 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
         this.balance = balance
         return craftPlayer.setBalance(balance)
     }
+
+    override fun sendActionBar(message: Component) = craftPlayer.sendActionBar(message)
 }

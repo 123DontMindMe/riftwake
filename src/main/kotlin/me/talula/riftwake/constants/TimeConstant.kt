@@ -1,7 +1,7 @@
 package me.talula.riftwake.constants
 
 class TimeConstant(name: String): Constant<Int>(name, "time") {
-    override fun serialize(): String {
+    override fun formatted(): String {
         var totalTicks = value
         val weeks = totalTicks / (60 * 60 * 20 * 24 * 7)
         totalTicks %= 60 * 60 * 20 * 24 * 7
@@ -28,6 +28,8 @@ class TimeConstant(name: String): Constant<Int>(name, "time") {
 
 		return result.toString()
     }
+
+    override fun serialize() = formatted()
 
     override fun deserialize(value: String): Int? {
         var total = 0.0

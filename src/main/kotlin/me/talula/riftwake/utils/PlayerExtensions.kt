@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture
 
 val OfflinePlayer.riftwake get() = Riftwake.playerRegistry[this]
 val RiftwakePlayer.riftwake get() = this
-val CommandSender.riftwake get() = (this as OfflinePlayer?)?.riftwake
+val CommandSender.riftwake get() = (this as? OfflinePlayer)?.riftwake
 
 // should use when passing in a potential RiftwakePlayer into a Paper method, since it usually
 // attempts to cast it to a CraftPlayer

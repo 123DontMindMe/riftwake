@@ -296,6 +296,20 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             )
         )
 
+        registerCommand(Commands.literal("rtp")
+            .playerRun { player ->
+                val cooldownRemaining = player.block.randomTeleportCooldownRemaining
+                println(cooldownRemaining)
+                if (cooldownRemaining > 0) {
+                    player.sendMessage("You must wait ${cooldownRemaining.toTimeString()} to random teleport again.".red)
+                    false
+                } else {
+                    player.block.startRandomTeleport()
+                    true
+                }
+            }
+        )
+
         Constant.init()
         AuctionRegistry.init()
         Structures.init()

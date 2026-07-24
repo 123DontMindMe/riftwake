@@ -66,7 +66,7 @@ class LayerTable {
         VEGETATION(BlockTypes.LIME_WOOL!!)
     }
 
-    val entryFormat = Regex("(.+?)(?::(.+?))?(?:\\[(.+)=(.+)])? ([0-9]+)")
+    val entryFormat = Regex("(.+?)(?::(.+?))?(?:\\[(.+)=(.+)])? ([0-9]*\\.[0-9]+|[0-9]+)")
     val colors = arrayOf(
         "WHITE", "LIGHT_GRAY", "GRAY", "BLACK",
         "RED", "ORANGE", "YELLOW", "LIME",

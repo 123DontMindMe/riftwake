@@ -44,7 +44,7 @@ abstract class Constant<T>(val name: String, val type: String) {
                     .then(Commands.argument("name", StringArgumentType.string())
                         .suggests { _, builder ->
                             for ((name, constant) in constants)
-                                builder.suggest(name, ("Current value: " + constant.serialize()).toMessage())
+                                builder.suggest(name, ("Current value: " + constant.formatted()).toMessage())
                             builder.buildFuture()
                         }
                         .executes { ctx ->
@@ -54,7 +54,7 @@ abstract class Constant<T>(val name: String, val type: String) {
                                 ctx.source.sender.sendMessage(("Key '" + name + "' does not exist.").red)
                                 return@executes 0
                             }
-                            ctx.source.sender.sendMessage("Current value: " + constant.serialize())
+                            ctx.source.sender.sendMessage("Current value: " + constant.formatted())
                             1
                         }
                         .then(Commands.argument("value", StringArgumentType.greedyString())
@@ -100,11 +100,12 @@ abstract class Constant<T>(val name: String, val type: String) {
     fun set(value: String, isFromFile: Boolean = false): Boolean {
         this.value = deserialize(value) ?: return false
         if (!isFromFile)
-            file.set(name, value)
+            file.set(name, serialize())
         return true
     }
 
-    abstract fun serialize(): String
+    abstract fun formatted(): String
+    abstract fun serialize(): Any
     abstract fun deserialize(value: String): T?
 }
 

@@ -8,6 +8,7 @@ import com.mojang.brigadier.context.CommandContext
 import com.sk89q.worldedit.EditSession
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.bukkit.BukkitAdapter
+import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.util.SideEffectSet
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import io.papermc.paper.command.brigadier.CommandSourceStack
@@ -21,6 +22,13 @@ import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.Vector
 import java.util.UUID
 import kotlin.math.pow
+
+inline infix fun <T> (() -> T).until(predicate: (T) -> Boolean): T {
+    var result = this()
+    while (!predicate(result))
+        result = this()
+    return result
+}
 
 fun ItemStack.withRandomUUID(): ItemStack {
     val item = clone()
@@ -89,11 +97,18 @@ fun Material.toStateType() = StateTypes.getByName(ResourceLocation(name.lowercas
 
 fun Int.pow(power: Double) = toDouble().pow(power)
 
+fun BlockVector3.toLocation(world: World) = Location(world, x().toDouble(), y().toDouble(), z().toDouble())
+fun BlockVector3.toVector() = Vector(x().toDouble(), y().toDouble(), z().toDouble())
+
+val Location.blockCoords get() = "$blockX, $blockY, $blockZ"
+
 fun Location.xzDistance2(other: Location): Double {
     val xDiff = x - other.x
     val zDiff = z - other.z
     return xDiff * xDiff + zDiff * zDiff
 }
+
+fun Location.xzDistance2() = x * x + z * z
 
 fun Location.setType(type: Material) = world.setType(this, type)
 
@@ -109,6 +124,7 @@ fun Location.forPacket(): com.github.retrooper.packetevents.protocol.world.Locat
     return SpigotConversionUtil.fromBukkitLocation(this)
 }
 
+fun Location.plus(vector: Vector) = clone().add(vector)
 fun Location.plus(x: Double, y: Double, z: Double) = clone().add(x, y, z)
 fun Location.plus(x: Int, y: Int, z: Int): Location = clone().add(x.toDouble(), y.toDouble(), z.toDouble())
 
