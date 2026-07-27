@@ -1,8 +1,10 @@
 package me.talula.riftwake
 
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSystemChatMessage
 import io.papermc.paper.event.player.AsyncChatEvent
 import me.talula.riftwake.combat.CombatComponent
+import me.talula.riftwake.crates.CrateComponent
 import me.talula.riftwake.dialogue.DialogueComponent
 import me.talula.riftwake.events.BiEvent
 import me.talula.riftwake.events.Event
@@ -11,6 +13,7 @@ import me.talula.riftwake.items.ItemComponent
 import me.talula.riftwake.spawn.SpawnComponent
 import me.talula.riftwake.theblock.TheBlockComponent
 import me.talula.riftwake.utils.luckPermsUser
+import me.talula.riftwake.utils.sendPacket
 import me.talula.riftwake.utils.setBalance
 import net.kyori.adventure.text.Component
 import org.bukkit.block.Block
@@ -20,13 +23,9 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.EntityPlaceEvent
-import org.bukkit.event.player.PlayerDropItemEvent
-import org.bukkit.event.player.PlayerInteractEntityEvent
-import org.bukkit.event.player.PlayerInteractEvent
-import org.bukkit.event.player.PlayerMoveEvent
-import org.bukkit.event.player.PlayerTeleportEvent
-import org.bukkit.event.player.PlayerToggleSneakEvent
+import org.bukkit.event.player.*
 import org.bukkit.inventory.ItemStack
 import java.util.concurrent.CompletableFuture
 import kotlin.jvm.optionals.getOrDefault
@@ -48,6 +47,7 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val onReceiveDamage = Event<EntityDamageEvent>()
     val onDamageEntity = Event<EntityDamageByEntityEvent>()
     val onReceiveEntityDamage = BiEvent<EntityDamageByEntityEvent, Entity>()
+    val onKillPlayer = BiEvent<EntityDeathEvent, RiftwakePlayer>()
     val onDropItem = Event<PlayerDropItemEvent>()
 
     val dialogue = DialogueComponent(this)
@@ -55,6 +55,7 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val spawn = SpawnComponent(this)
     val items = ItemComponent(this)
     val combat = CombatComponent(this)
+    val crate = CrateComponent(this)
 
     var balance: Long = luckPermsUser.cachedData.metaData.getMetaValue("balance", String::toLong).getOrDefault(0L)
         set(value) {
@@ -72,4 +73,9 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     }
 
     override fun sendActionBar(message: Component) = craftPlayer.sendActionBar(message)
+    // workaround for sendMessage not sending hover/click events
+    override fun sendMessage(message: Component) =
+        craftPlayer.sendPacket(WrapperPlayServerSystemChatMessage(false, message))
+
+    val itemHeld get() = craftPlayer.inventory.itemInMainHand.takeUnless { it.isEmpty }
 }

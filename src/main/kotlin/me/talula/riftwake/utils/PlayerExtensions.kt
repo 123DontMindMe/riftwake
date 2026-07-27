@@ -2,6 +2,7 @@ package me.talula.riftwake.utils
 
 import com.github.retrooper.packetevents.PacketEvents
 import com.github.retrooper.packetevents.wrapper.PacketWrapper
+import io.papermc.paper.persistence.PersistentDataViewHolder
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import net.luckperms.api.model.user.User
@@ -40,12 +41,16 @@ fun OfflinePlayer.setBalance(balance: Long): CompletableFuture<Void> {
     }
 }
 
-fun <P: Any, C: Any> PersistentDataHolder.hasData(key: String, type: PersistentDataType<P, C>): Boolean {
+fun <P: Any, C: Any> PersistentDataViewHolder.hasData(key: String, type: PersistentDataType<P, C>): Boolean {
     return persistentDataContainer.has(NamespacedKey("riftwake", key), type)
 }
 
-fun <P: Any, C: Any> PersistentDataHolder.getData(key: String, type: PersistentDataType<P, C>): C? {
+fun <P: Any, C: Any> PersistentDataViewHolder.getData(key: String, type: PersistentDataType<P, C>): C? {
     return persistentDataContainer.get(NamespacedKey("riftwake", key), type)
+}
+
+fun PersistentDataViewHolder.getStringData(key: String): String? {
+    return persistentDataContainer.get(NamespacedKey("riftwake", key), PersistentDataType.STRING)
 }
 
 fun <P: Any, C: Any> PersistentDataHolder.setData(key: String, type: PersistentDataType<P, C>, value: C?): C? {

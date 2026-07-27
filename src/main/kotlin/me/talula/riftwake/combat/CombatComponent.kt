@@ -3,14 +3,7 @@ package me.talula.riftwake.combat
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.constants.TimeConstant
-import me.talula.riftwake.utils.comp
-import me.talula.riftwake.utils.craft
-import me.talula.riftwake.utils.gray
-import me.talula.riftwake.utils.green
-import me.talula.riftwake.utils.maxPlaces
-import me.talula.riftwake.utils.plus
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.riftwake
+import me.talula.riftwake.utils.*
 import org.bukkit.scheduler.BukkitTask
 import kotlin.math.ceil
 

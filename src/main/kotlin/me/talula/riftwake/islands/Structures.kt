@@ -13,17 +13,7 @@ import me.talula.riftwake.Riftwake
 import me.talula.riftwake.constants.IntConstant
 import me.talula.riftwake.constants.NumConstant
 import me.talula.riftwake.constants.TimeConstant
-import me.talula.riftwake.utils.ConfigurationException
-import me.talula.riftwake.utils.LayerTable
-import me.talula.riftwake.utils.RandomTable
-import me.talula.riftwake.utils.edit
-import me.talula.riftwake.utils.green
-import me.talula.riftwake.utils.plus
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.riftwake
-import me.talula.riftwake.utils.toLocation
-import me.talula.riftwake.utils.toVector
-import me.talula.riftwake.utils.yellow
+import me.talula.riftwake.utils.*
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.block.Chest
@@ -37,10 +27,7 @@ import org.bukkit.loot.LootTables
 import org.bukkit.util.BoundingBox
 import org.bukkit.util.Vector
 import java.io.FileInputStream
-import java.util.Random
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.iterator
+import java.util.*
 
 object Structures {
     val worldRadius = IntConstant("structures.world-radius")

@@ -2,29 +2,25 @@ package me.talula.riftwake.theblock
 
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.theblock.TreeUpgrade.Companion.random
-import me.talula.riftwake.utils.ConfigurationException
-import me.talula.riftwake.utils.TieredTable
-import me.talula.riftwake.utils.plus
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.setType
+import me.talula.riftwake.utils.*
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.TreeType
 import org.bukkit.block.Block
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.Player
-import java.util.UUID
+import java.util.*
 
 object TheBlockRegistry {
-    val file = Riftwake.getConfig("blocks.yml")
+    val file = Riftwake.Config("blocks.yml")
     val blocksByOwner: MutableMap<UUID, TheBlock> = HashMap()
     val blocksByLocation: MutableMap<Block, TheBlock> = HashMap()
 
     init {
-        for (key in file.getKeys(false)) {
+        for ((key, data) in file.sections) {
             val uuid = UUID.fromString(key)
             try {
-                register(TheBlock(uuid, file.getConfigurationSection(key)!!))
+                register(TheBlock(uuid, data))
             } catch (error: ConfigurationException) {
                 val owner = Riftwake.instance.server.getOfflinePlayer(uuid)
                 Riftwake.broadcastToOperators("error in ${owner.name}'s data (uuid=${owner.uniqueId}) in blocks.yml: ${error.message}".red)
@@ -43,11 +39,11 @@ object TheBlockRegistry {
         blocksByOwner[block.owner] = block
         blocksByLocation[block.block] = block
         if (!isFromFile)
-            file.set(block.owner.toString(), block.serialize())
+            file[block.owner.toString()] = block.serialize()
     }
 
     fun save() {
-        Riftwake.saveConfig(file, "blocks.yml")
+        file.save()
         Riftwake.logger.info("Player block data saved to blocks.yml")
     }
 }

@@ -1,14 +1,7 @@
 package me.talula.riftwake.economy
 
 import me.talula.riftwake.RiftwakePlayer
-import me.talula.riftwake.utils.InventoryGUI
-import me.talula.riftwake.utils.bold
-import me.talula.riftwake.utils.comp
-import me.talula.riftwake.utils.green
-import me.talula.riftwake.utils.playSound
-import me.talula.riftwake.utils.plus
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.withRandomUUID
+import me.talula.riftwake.utils.*
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound

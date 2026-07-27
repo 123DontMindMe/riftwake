@@ -1,8 +1,12 @@
 package me.talula.riftwake.utils
 
+import java.math.BigDecimal
+import java.math.MathContext
 import java.text.DecimalFormat
 
 val Long.withCommas: String get() = DecimalFormat("#,##0").format(this)
+
+fun Double.sigFigs(precision: Int): String = BigDecimal(this).round(MathContext(precision)).toPlainString()
 
 fun Double.maxPlaces(decimals: Int): String {
     return DecimalFormat("0." + "#".repeat(decimals)).format(this)

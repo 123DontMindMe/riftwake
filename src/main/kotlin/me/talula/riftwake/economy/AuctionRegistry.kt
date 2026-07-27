@@ -4,11 +4,7 @@ import com.mojang.brigadier.arguments.LongArgumentType
 import io.papermc.paper.command.brigadier.Commands
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.constants.TimeConstant
-import me.talula.riftwake.utils.playSound
-import me.talula.riftwake.utils.playerRun
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.riftwake
-import me.talula.riftwake.utils.yellow
+import me.talula.riftwake.utils.*
 import net.kyori.adventure.text.Component
 import org.bukkit.OfflinePlayer
 import org.bukkit.Sound
@@ -23,22 +19,14 @@ object AuctionRegistry {
     fun init() {
         Riftwake.registerCommand(Commands.literal("auction")
             .then(Commands.literal("buy")
-                .playerRun { player ->
-                    AuctionBuyGUI(player).open()
-                    true
-                }
+                .runPlayer { player -> AuctionBuyGUI(player).open() }
             )
             .then(Commands.literal("sell")
                 .then(Commands.argument("cost", LongArgumentType.longArg(0))
-                    .playerRun { ctx, player ->
-                        val item = player.inventory.itemInMainHand
-                        if (item.isEmpty) {
-                            player.sendMessage("You must be holding the item you want to sell.".red)
-                            return@playerRun false
-                        }
+                    .runPlayer { ctx, player ->
+                        val item = player.itemHeld ?: throw CommandFail("You must be holding the item you want to sell.")
                         val cost = ctx.getArgument("cost", Long::class.java)
                         AuctionConfirmSellGUI(player, item.clone(), cost).open()
-                        true
                     }
                 )
             )

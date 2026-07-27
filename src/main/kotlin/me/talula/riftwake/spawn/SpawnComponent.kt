@@ -4,12 +4,7 @@ import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.constants.NumConstant
 import me.talula.riftwake.constants.TimeConstant
-import me.talula.riftwake.utils.craft
-import me.talula.riftwake.utils.playSound
-import me.talula.riftwake.utils.plus
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.xzDistance2
-import me.talula.riftwake.utils.yellow
+import me.talula.riftwake.utils.*
 import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.Sound
@@ -28,12 +23,12 @@ class SpawnComponent(val player: RiftwakePlayer) {
 
         val dropItemMessage =
             "You can't drop items in spawn. Use ".red + "/trash".yellow + " to dispose of items.".red
+
+        fun isInSpawn(location: Location) = location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
     }
 
     var isInSpawn = player.location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
         private set
-
-    fun isInSpawn(location: Location) = location.xzDistance2(spawnCenter) < spawnRadius * spawnRadius
 
     init {
         player.onMove += { event ->

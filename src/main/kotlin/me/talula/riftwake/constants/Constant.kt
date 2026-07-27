@@ -3,41 +3,36 @@ package me.talula.riftwake.constants
 import com.mojang.brigadier.arguments.StringArgumentType
 import io.papermc.paper.command.brigadier.Commands
 import me.talula.riftwake.Riftwake
-import me.talula.riftwake.utils.ConfigurationException
-import me.talula.riftwake.utils.green
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.toMessage
+import me.talula.riftwake.utils.*
 
 abstract class Constant<T>(val name: String, val type: String) {
     companion object {
         val constants = mutableMapOf<String, Constant<*>>()
-        val file = Riftwake.getConfig("config.yml")
+        val file = Riftwake.Config("config.yml")
 
         fun init() {
             Riftwake.registerCommand(Commands.literal("config")
                 .requires { ctx -> ctx.sender.isOp }
                 .then(Commands.literal("save")
-                    .executes { ctx ->
-                        Riftwake.saveConfig(file, "config.yml")
-                        ctx.source.sender.sendMessage("Config values saved to file.".green)
-                        1
+                    .replySender {
+                        file.save()
+                        "Config values saved to file.".green
                     }
                 )
                 .then(Commands.literal("reload")
-                    .executes { ctx ->
+                    .replySender { sender ->
                         for ((name, constant) in constants) {
                             val string = file.getString(name)
                             if (string == null) {
-                                ctx.source.sender.sendMessage("Config value $name was not set.".red)
+                                sender.sendMessage("Config value $name was not set.".red)
                                 continue
                             }
                             if (!constant.set(string, isFromFile=true)) {
-                                ctx.source.sender.sendMessage("Config value $name was formatted incorrectly for type ${constant.type}.")
+                                sender.sendMessage("Config value $name was formatted incorrectly for type ${constant.type}.")
                                 continue
                             }
                         }
-                        ctx.source.sender.sendMessage("Config loaded from file successfully.".green)
-                        1
+                        "Config loaded from file successfully.".green
                     }
                 )
                 .then(Commands.literal("val")
@@ -89,7 +84,7 @@ abstract class Constant<T>(val name: String, val type: String) {
             val string = file.getString(name) ?: throw ConfigurationException("Config value $name was not set.")
             value = deserialize(string) ?: throw ConfigurationException("Config value $name was formatted incorrectly for type $type.")
         } catch (error: ConfigurationException) {
-            Riftwake.broadcastToOperators(error.message)
+            Riftwake.broadcastToOperators(error.message.red)
             throw error
         }
         constants[name] = this
@@ -100,7 +95,7 @@ abstract class Constant<T>(val name: String, val type: String) {
     fun set(value: String, isFromFile: Boolean = false): Boolean {
         this.value = deserialize(value) ?: return false
         if (!isFromFile)
-            file.set(name, serialize())
+            file[name] = serialize()
         return true
     }
 

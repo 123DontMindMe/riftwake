@@ -1,18 +1,18 @@
 package me.talula.riftwake.utils
 
+import com.github.retrooper.packetevents.protocol.component.ComponentTypes
+import com.github.retrooper.packetevents.protocol.component.builtin.item.ItemRarity
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.github.retrooper.packetevents.resources.ResourceLocation
-import com.mojang.brigadier.builder.LiteralArgumentBuilder
-import com.mojang.brigadier.builder.RequiredArgumentBuilder
-import com.mojang.brigadier.context.CommandContext
 import com.sk89q.worldedit.EditSession
 import com.sk89q.worldedit.WorldEdit
 import com.sk89q.worldedit.bukkit.BukkitAdapter
 import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.util.SideEffectSet
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
-import io.papermc.paper.command.brigadier.CommandSourceStack
-import me.talula.riftwake.RiftwakePlayer
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextColor
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
@@ -20,7 +20,8 @@ import org.bukkit.block.data.BlockData
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.Vector
-import java.util.UUID
+import java.util.*
+import kotlin.jvm.optionals.getOrDefault
 import kotlin.math.pow
 
 inline infix fun <T> (() -> T).until(predicate: (T) -> Boolean): T {
@@ -29,6 +30,42 @@ inline infix fun <T> (() -> T).until(predicate: (T) -> Boolean): T {
         result = this()
     return result
 }
+
+val ItemStack.hoverableStack: Component get() {
+    val meta = itemMeta
+    val name: Component
+    val color: TextColor
+    if (meta.hasItemName()) {
+        name = meta.itemName()
+        color = meta.itemName().firstColor
+    } else {
+        name = Component.translatable(this)
+        val rarity = forPacket  // meta.rarity STILL doesn't work
+            .getComponent(ComponentTypes.RARITY)
+            .getOrDefault(ItemRarity.COMMON)
+            .name
+        color = when (rarity) {
+            "UNCOMMON" -> NamedTextColor.YELLOW
+            "RARE" -> NamedTextColor.AQUA
+            "EPIC" -> NamedTextColor.LIGHT_PURPLE
+            else -> NamedTextColor.WHITE
+        }
+    }
+
+    val formattedName = if (maxStackSize == 1)
+        "[".color(color) + name + "]".color(color)
+    else
+        "[".color(color) + name + " x$amount]".color(color)
+
+    println(if (meta.hasLore()) meta.lore() else "none")
+    return if (meta.hasLore())
+        formattedName.hoverEvent(asHoverEvent())
+    else
+        formattedName
+}
+
+val ItemStack.forPacket: com.github.retrooper.packetevents.protocol.item.ItemStack get() =
+    SpigotConversionUtil.fromBukkitItemStack(this)
 
 fun ItemStack.withRandomUUID(): ItemStack {
     val item = clone()
@@ -69,22 +106,6 @@ fun <P,C> PersistentDataType<P,C>.parse(string: String): C {
         PersistentDataType.LONG_ARRAY -> string.split(",").map { it.trim().toLong() }.toLongArray()
         else -> null
     } as C
-}
-
-fun LiteralArgumentBuilder<CommandSourceStack>.playerRun(command: (RiftwakePlayer) -> Boolean): LiteralArgumentBuilder<CommandSourceStack> {
-    return executes { ctx ->
-        val player = ctx.source.sender.riftwake ?: return@executes 0
-        return@executes if (command(player)) 1 else 0
-    }
-}
-
-fun <T> RequiredArgumentBuilder<CommandSourceStack, T>.playerRun(
-    command: (CommandContext<CommandSourceStack>, RiftwakePlayer) -> Boolean
-): RequiredArgumentBuilder<CommandSourceStack, T> {
-    return executes { ctx ->
-        val player = ctx.source.sender.riftwake ?: return@executes 0
-        return@executes if (command(ctx, player)) 1 else 0
-    }
 }
 
 fun World.edit(consumer: (EditSession) -> Unit) {

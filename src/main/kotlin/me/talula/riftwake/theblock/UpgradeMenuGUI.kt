@@ -1,22 +1,11 @@
 package me.talula.riftwake.theblock
 
 import me.talula.riftwake.RiftwakePlayer
-import me.talula.riftwake.utils.InventoryGUI
-import me.talula.riftwake.utils.comp
-import me.talula.riftwake.utils.gold
-import me.talula.riftwake.utils.green
-import me.talula.riftwake.utils.lightPurple
-import me.talula.riftwake.utils.lore
-import me.talula.riftwake.utils.parseLore
-import me.talula.riftwake.utils.playSound
-import me.talula.riftwake.utils.plural
-import me.talula.riftwake.utils.plus
-import me.talula.riftwake.utils.yellow
+import me.talula.riftwake.utils.*
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
-import org.bukkit.event.inventory.InventoryClickEvent
 
 class UpgradeMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Upgrades".comp()) {
     init {
@@ -53,8 +42,6 @@ class UpgradeMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Upgrades"
 
         fillEmpty()
     }
-
-    override fun onClick(event: InventoryClickEvent) {}
 
     private fun getLore(numUpgrades: Int, numDisabled: Int): List<Component> {
         val lore = mutableListOf<Component>()

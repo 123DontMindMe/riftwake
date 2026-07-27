@@ -47,7 +47,13 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
                 EmptyButton(i)
     }
 
-    abstract fun onClick(event: InventoryClickEvent)
+    protected fun fillClear() {
+        for (i in 0 ..< numSlots)
+            if (inventory.getItem(i) == null)
+                StaticButton(i, clearIcon)
+    }
+
+    open fun onClick(event: InventoryClickEvent) {}
     open fun onDrag(event: InventoryDragEvent) {}
     open fun onPlayerInventoryClick(event: InventoryClickEvent) {}
     open fun onClose(event: InventoryCloseEvent) {}
@@ -161,14 +167,14 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
         }
 
         @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, amount: Int, vararg lore: Component, glint: Boolean = false, ): ItemStack {
+        protected fun createIcon(name: Component?, material: Material, amount: Int, vararg lore: Component, glint: Boolean = false): ItemStack {
             val button = createIcon(name, material, amount, glint)
             button.lore(listOf(*lore))
             return button
         }
 
         @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, amount: Int, lore: List<Component>, glint: Boolean = false,): ItemStack {
+        protected fun createIcon(name: Component?, material: Material, amount: Int, lore: List<Component>, glint: Boolean = false): ItemStack {
             val button = createIcon(name, material, amount, glint)
             button.lore(lore)
             return button

@@ -1,14 +1,7 @@
 package me.talula.riftwake.theblock
 
 import me.talula.riftwake.Riftwake
-import me.talula.riftwake.utils.ConfigurationException
-import me.talula.riftwake.utils.parse
-import me.talula.riftwake.utils.parseLore
-import me.talula.riftwake.utils.plus
-import me.talula.riftwake.utils.pow
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.setBlock
-import me.talula.riftwake.utils.setType
+import me.talula.riftwake.utils.*
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.TreeType
@@ -16,12 +9,12 @@ import org.bukkit.block.data.Ageable
 import org.bukkit.block.data.BlockData
 import org.bukkit.block.data.type.CaveVinesPlant
 import org.bukkit.configuration.ConfigurationSection
-import java.util.Random
+import java.util.*
 
 object UpgradeRegistry {
-    val miningFile = Riftwake.getConfig("mining_upgrades.yml")
-    val farmingFile = Riftwake.getConfig("farming_upgrades.yml")
-    val buildingFile = Riftwake.getConfig("building_upgrades.yml")
+    val miningFile = Riftwake.Config("mining_upgrades.yml")
+    val farmingFile = Riftwake.Config("farming_upgrades.yml")
+    val buildingFile = Riftwake.Config("building_upgrades.yml")
 
     val tiers: Map<String, Int> field = mutableMapOf()
     val miningUpgrades: Map<String, Upgrade> field = mutableMapOf()
@@ -33,9 +26,9 @@ object UpgradeRegistry {
         for ((index, key) in Riftwake.getFile("tiers.txt").readLines().withIndex())
             tiers[key] = index + 2
 
-        for (key in miningFile.getKeys(false)) {
+        for ((key, section) in miningFile.sections) {
             val upgrade = try {
-                readUpgrade(key, miningFile.getConfigurationSection(key)!!)
+                readUpgrade(key, section)
             } catch (error: ConfigurationException) {
                 Riftwake.broadcastToOperators(("config error in upgrade '$key': " + error.message).red)
                 continue
@@ -43,9 +36,9 @@ object UpgradeRegistry {
             upgrades[key] = upgrade
             miningUpgrades[key] = upgrade
         }
-        for (key in farmingFile.getKeys(false)) {
+        for ((key, section) in farmingFile.sections) {
             val upgrade = try {
-                readUpgrade(key, farmingFile.getConfigurationSection(key)!!)
+                readUpgrade(key, section)
             } catch (error: ConfigurationException) {
                 Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red)
                 continue
@@ -53,9 +46,9 @@ object UpgradeRegistry {
             upgrades[key] = upgrade
             farmingUpgrades[key] = upgrade
         }
-        for (key in buildingFile.getKeys(false)) {
+        for ((key, section) in buildingFile.sections) {
             val upgrade = try {
-                readUpgrade(key, buildingFile.getConfigurationSection(key)!!)
+                readUpgrade(key, section)
             } catch (error: ConfigurationException) {
                 Riftwake.broadcastToOperators(("config error in upgrade $key: " + error.message).red)
                 continue

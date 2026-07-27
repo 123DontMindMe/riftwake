@@ -5,7 +5,6 @@ import com.sk89q.worldedit.world.block.BlockType
 import com.sk89q.worldedit.world.block.BlockTypes
 import me.talula.riftwake.Riftwake
 import java.util.*
-import kotlin.collections.set
 
 class LayerTable {
     interface Entry { fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) }
@@ -238,10 +237,12 @@ class TieredTable<E> {
 }
 
 class RandomTable<E> {
-    inner class Entry(val value: E, val weight: Double)
+    inner class Entry(val value: E, val weight: Double) {
+        val currentChance get() = weight / totalWeight
+    }
 
     private val distribution: NavigableMap<Double?, E> = TreeMap<Double?, E>()
-    private val entries: MutableList<Entry> = ArrayList<Entry>()
+    val entries: List<Entry> field = mutableListOf<Entry>()
     var totalWeight: Double = 0.0
         private set
 

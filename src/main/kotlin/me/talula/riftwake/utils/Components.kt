@@ -3,6 +3,7 @@ package me.talula.riftwake.utils
 import com.mojang.brigadier.Message
 import io.papermc.paper.command.brigadier.MessageComponentSerializer
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.ScopedComponent
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.TranslatableComponent
 import net.kyori.adventure.text.event.ClickEvent
@@ -10,15 +11,7 @@ import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
-import java.util.Locale
-import kotlin.Any
-import kotlin.Array
-import kotlin.Char
-import kotlin.IllegalArgumentException
-import kotlin.Int
-import kotlin.collections.ArrayList
-import kotlin.collections.MutableList
-import kotlin.collections.indices
+import java.util.*
 
 fun List<Component>.andJoin(): Component {
     if (isEmpty())
@@ -57,23 +50,25 @@ fun TextColor.join(vararg args: Any): TextComponent {
     return Components.join(this, *args)
 }
 
-fun String.parseLore(vararg args: Any): Component {
+fun String.parseLore(vararg args: Any): TextComponent {
     return Components.loreLine(this, *args)
 }
 
-fun String.parse(vararg args: Any): Component {
+fun String.parse(vararg args: Any): TextComponent {
     return Components.line(this, *args)
 }
 
-fun String.comp(): Component {
+fun String.comp(): TextComponent {
     return Component.text(this)
 }
 
-fun String.lore(): Component {
+fun String.lore(): TextComponent {
     return Component.text(this).decoration(TextDecoration.ITALIC, false).color(NamedTextColor.GRAY)
 }
 
 fun List<String>.parseLore(vararg args: Any) = Components.loreLines(this, *args)
+
+fun TextComponent.serialize() = Components.toString(this)
 
 object Components {
     fun content(component: TextComponent): String {
@@ -465,6 +460,27 @@ val Component.lightPurple get() = color(NamedTextColor.LIGHT_PURPLE)
 val Component.yellow get() = color(NamedTextColor.YELLOW)
 val Component.white get() = color(NamedTextColor.WHITE)
 
+val <C: Component> ScopedComponent<C>.bold get() = decorate(TextDecoration.BOLD)
+val <C: Component> ScopedComponent<C>.unitalic get() = decoration(TextDecoration.ITALIC, false)
+val <C: Component> ScopedComponent<C>.strikethrough get() = decorate(TextDecoration.STRIKETHROUGH)
+val <C: Component> ScopedComponent<C>.black get() = color(NamedTextColor.BLACK)
+val <C: Component> ScopedComponent<C>.darkBlue get() = color(NamedTextColor.DARK_BLUE)
+val <C: Component> ScopedComponent<C>.darkGreen get() = color(NamedTextColor.DARK_GREEN)
+val <C: Component> ScopedComponent<C>.darkAqua get() = color(NamedTextColor.DARK_AQUA)
+val <C: Component> ScopedComponent<C>.darkRed get() = color(NamedTextColor.DARK_RED)
+val <C: Component> ScopedComponent<C>.darkPurple get() = color(NamedTextColor.DARK_PURPLE)
+val <C: Component> ScopedComponent<C>.darkGray get() = color(NamedTextColor.DARK_GRAY)
+val <C: Component> ScopedComponent<C>.gold get() = color(NamedTextColor.GOLD)
+val <C: Component> ScopedComponent<C>.gray get() = color(NamedTextColor.GRAY)
+val <C: Component> ScopedComponent<C>.blue get() = color(NamedTextColor.BLUE)
+val <C: Component> ScopedComponent<C>.green get() = color(NamedTextColor.GREEN)
+val <C: Component> ScopedComponent<C>.aqua get() = color(NamedTextColor.AQUA)
+val <C: Component> ScopedComponent<C>.red get() = color(NamedTextColor.RED)
+val <C: Component> ScopedComponent<C>.lightPurple get() = color(NamedTextColor.LIGHT_PURPLE)
+val <C: Component> ScopedComponent<C>.yellow get() = color(NamedTextColor.YELLOW)
+val <C: Component> ScopedComponent<C>.white get() = color(NamedTextColor.WHITE)
+
+fun String.color(color: TextColor) = Component.text(this).color(color)
 val String.bold get() = Component.text(this).decorate(TextDecoration.BOLD)
 val String.black get() = Component.text(this).color(NamedTextColor.BLACK)
 val String.darkBlue get() = Component.text(this).color(NamedTextColor.DARK_BLUE)
@@ -482,3 +498,11 @@ val String.red get() = Component.text(this).color(NamedTextColor.RED)
 val String.lightPurple get() = Component.text(this).color(NamedTextColor.LIGHT_PURPLE)
 val String.yellow get() = Component.text(this).color(NamedTextColor.YELLOW)
 val String.white get() = Component.text(this).color(NamedTextColor.WHITE)
+
+val Component.firstColor: TextColor get() {
+    color()?.let { return it }
+    val children = children()
+    if (children.isEmpty())
+        return NamedTextColor.GRAY
+    return children.first().firstColor
+}
