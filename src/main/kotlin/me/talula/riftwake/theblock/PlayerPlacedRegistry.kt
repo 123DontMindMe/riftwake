@@ -23,6 +23,7 @@ object PlayerPlacedRegistry {
     }
 
     fun unregisterChunk(chunk: Chunk) {
+        println("unregisterChunk")
         val blocks = map.remove(chunk) ?: throw IllegalArgumentException("Chunk wasn't registered")
         if (blocks.isEmpty())
             return
@@ -48,5 +49,25 @@ object PlayerPlacedRegistry {
     fun unregisterBlock(block: Block): Boolean {
         val coords = map[block.chunk] ?: throw IllegalArgumentException("Block is in non-registered chunk")
         return coords.remove(block)
+    }
+
+    fun getPlayerPlacedBlocks(chunk: Chunk): Set<Block> {
+        return map[chunk] ?: throw IllegalArgumentException("Chunk wasn't registered")
+    }
+
+    fun unregisterAll() {
+        for ((chunk, blocks) in map) {
+            if (blocks.isEmpty())
+                continue
+            val array = IntArray(blocks.size * 3)
+            for ((index, block) in blocks.withIndex()) {
+                array[index] = block.x - (chunk.x * 16)
+                array[index + 1] = block.y
+                array[index + 2] = block.z - (chunk.z * 16)
+            }
+            chunk.setData("player-placed-blocks", PersistentDataType.INTEGER_ARRAY, array)
+            println("saved " + array.contentToString())
+        }
+        map.clear()
     }
 }

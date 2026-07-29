@@ -1,10 +1,12 @@
 package me.talula.riftwake
 
+import com.destroystokyo.paper.event.block.BlockDestroyEvent
 import com.github.retrooper.packetevents.PacketEvents
 import com.github.retrooper.packetevents.event.PacketListener
 import com.github.retrooper.packetevents.event.PacketListenerPriority
 import com.github.retrooper.packetevents.event.PacketReceiveEvent
 import com.github.retrooper.packetevents.protocol.packettype.PacketType
+import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -20,6 +22,8 @@ import me.talula.riftwake.dialogue.PlaceBlockStage
 import me.talula.riftwake.economy.AuctionRegistry
 import me.talula.riftwake.islands.Structures
 import me.talula.riftwake.items.Items
+import me.talula.riftwake.spawn.SpawnComponent
+import me.talula.riftwake.temporaries.BlockCoordDisplay
 import me.talula.riftwake.theblock.PlayerPlacedRegistry
 import me.talula.riftwake.theblock.TheBlockRegistry
 import me.talula.riftwake.theblock.UpgradeMenuGUI
@@ -274,6 +278,20 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             }
         )
 
+        registerCommand(Commands.literal("player-placed")
+            .requires { it.sender.isOp }
+            .replyPlayer { player ->
+                val displays = PlayerPlacedRegistry.getPlayerPlacedBlocks(player.chunk).map {
+                    BlockCoordDisplay(player, StateTypes.LIME_STAINED_GLASS, it.location)
+                }
+                runTaskLater(100) {
+                    for (display in displays)
+                        display.delete()
+                }
+                "Showing ${displays.size} player-placed blocks in your chunk".yellow
+            }
+        )
+
         Constant.init()
         AuctionRegistry.init()
         Structures.init()
@@ -282,6 +300,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
     override fun onDisable() {
         TheBlockRegistry.save()
+        PlayerPlacedRegistry.unregisterAll()
     }
 
     @EventHandler
@@ -417,6 +436,9 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                 event.isCancelled = true
                 return
             }
+
+        for (block in event.blocks)
+            PlayerPlacedRegistry.registerBlock(block.location.plus(event.direction.direction).block)
     }
 
     @EventHandler(ignoreCancelled=true)
@@ -426,6 +448,9 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                 event.isCancelled = true
                 return
             }
+
+        for (block in event.blocks)
+            PlayerPlacedRegistry.registerBlock(block.location.plus(event.direction.direction).block)
     }
 
     // https://www.spigotmc.org/threads/prevent-sand-from-falling-upon-placing-sand.133386/
@@ -458,6 +483,13 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     fun onChunkLoad(event: ChunkLoadEvent) = PlayerPlacedRegistry.registerChunk(event.chunk)
     @EventHandler
     fun onChunkUnload(event: ChunkUnloadEvent) = PlayerPlacedRegistry.unregisterChunk(event.chunk)
+    @EventHandler
+    fun onBlockDestroy(event: BlockDestroyEvent) {
+        println(event)
+        if (SpawnComponent.isInSpawn(event.block.location))
+            return
+        PlayerPlacedRegistry.unregisterBlock(event.block)
+    }
 
     override fun onPacketReceive(event: PacketReceiveEvent) {
         if (event.packetType == PacketType.Play.Client.INTERACT_ENTITY) {
