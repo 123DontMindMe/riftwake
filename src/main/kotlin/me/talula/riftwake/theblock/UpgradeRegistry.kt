@@ -5,8 +5,10 @@ import me.talula.riftwake.utils.*
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.TreeType
+import org.bukkit.block.BlockFace
 import org.bukkit.block.data.Ageable
 import org.bukkit.block.data.BlockData
+import org.bukkit.block.data.Directional
 import org.bukkit.block.data.type.CaveVinesPlant
 import org.bukkit.configuration.ConfigurationSection
 import java.util.*
@@ -169,11 +171,39 @@ open class BlockUpgrade: Upgrade, Spawnable {
 
     override fun spawn(theBlock: TheBlock) {
         theBlock.location.setType(block)
+        if (Math.random() < theBlock.growthChance) {
+            when (block) {
+                Material.SCULK -> {
+                    val location = theBlock.location.plus(0, 1, 0)
+                    if (location.block.isEmpty)
+                        location.setType(listOf(
+                            Material.SCULK_VEIN, Material.SCULK_SENSOR,
+                            Material.SCULK_CATALYST, Material.SCULK_SHRIEKER
+                        ).random())
+                }
+                Material.AMETHYST_BLOCK -> {
+                    theBlock.location.setType(Material.BUDDING_AMETHYST)
+                    for (direction in listOf(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN)) {
+                        val location = theBlock.location.plus(direction.direction)
+                        if (location.block.isEmpty) {
+                            location.setBlock(Material.SMALL_AMETHYST_BUD.createBlockData { data ->
+                                (data as Directional).facing = direction
+                            })
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
     }
 }
 
 class CropUpgrade: BlockUpgrade {
     val crops: List<BlockData>
+
+    companion object {
+        val random = Random()
+    }
 
     constructor(key: String, data: ConfigurationSection) : super(key, data) {
         crops = data.getString("crop")?.split(',')?.map{ c ->
@@ -187,9 +217,68 @@ class CropUpgrade: BlockUpgrade {
     }
 
     override fun spawn(theBlock: TheBlock) {
+        if (Math.random() < theBlock.growthChance) {
+            val crop = crops.random()
+            var didGrow = true
+            when (crop.material) {
+                Material.RED_MUSHROOM -> {
+                    theBlock.location.setType(Material.PODZOL)
+                    Riftwake.world.generateTree(theBlock.location.plus(0, 1, 0), random, TreeType.RED_MUSHROOM)
+                }
+                Material.BROWN_MUSHROOM -> {
+                    theBlock.location.setType(Material.PODZOL)
+                    Riftwake.world.generateTree(theBlock.location.plus(0, 1, 0), random, TreeType.BROWN_MUSHROOM)
+                }
+                Material.CHORUS_FLOWER -> {
+                    theBlock.location.setType(Material.END_STONE)
+                    Riftwake.world.generateTree(theBlock.location.plus(0, 1, 0), random, TreeType.CHORUS_PLANT)
+                }
+                Material.SUGAR_CANE -> {
+                    theBlock.location.setType(Material.SAND)
+                    for (y in 1..random.nextInt(3, 5)) {
+                        val location = theBlock.location.plus(0, y, 0)
+                        if (location.block.isEmpty)
+                            location.setType(Material.SUGAR_CANE)
+                        else break
+                    }
+                }
+                Material.BAMBOO -> {
+                    theBlock.location.setType(Material.PODZOL)
+                    for (y in 1..random.nextInt(5, 10)) {
+                        val location = theBlock.location.plus(0, y, 0)
+                        if (location.block.isEmpty)
+                            location.setType(Material.BAMBOO)
+                        else break
+                    }
+                }
+                Material.GLOW_BERRIES -> {
+                    theBlock.location.setType(Material.STONE)
+                    for (y in 1..random.nextInt(3, 5)) {
+                        val location = theBlock.location.plus(0, -y, 0)
+                        if (location.block.isEmpty)
+                            location.setBlock(crop)
+                        else break
+                    }
+                }
+                Material.CACTUS -> {
+                    theBlock.location.setType(Material.SAND)
+                    for (y in 1..random.nextInt(3, 5)) {
+                        val location = theBlock.location.plus(0, y, 0)
+                        if (location.block.isEmpty)
+                            location.setType(Material.CACTUS)
+                        else break
+                    }
+                }
+                else -> didGrow = false
+            }
+            if (didGrow)
+                return
+        }
+
         theBlock.location.setType(block)
         for (entity in theBlock.location.toCenterLocation().getNearbyLivingEntities(0.5))
             entity.location.y = theBlock.block.boundingBox.maxY
+
         val cropLocation = theBlock.location.plus(0, 1, 0)
         if (cropLocation.block.type == Material.AIR)
             cropLocation.setBlock(crops.random())
@@ -218,6 +307,12 @@ class TreeUpgrade: BlockUpgrade {
         }
         theBlock.location.setType(treeBlock)
         val treeLocation = theBlock.location.plus(0, 1, 0)
-        Riftwake.world.generateTree(treeLocation, random, treeType)
+        val type = when (treeType) {
+            TreeType.SMALL_JUNGLE -> if (Math.random() < 0.1) TreeType.JUNGLE else TreeType.SMALL_JUNGLE
+            TreeType.REDWOOD -> if (Math.random() < 0.1) TreeType.MEGA_REDWOOD else TreeType.REDWOOD
+            TreeType.PALE_OAK -> if (Math.random() < 0.25) TreeType.PALE_OAK_CREAKING else TreeType.PALE_OAK
+            else -> treeType
+        }
+        Riftwake.world.generateTree(treeLocation, random, type)
     }
 }
