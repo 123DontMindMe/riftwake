@@ -86,5 +86,6 @@ class MilestonesGUI(player: RiftwakePlayer): InventoryGUI(player, 6, "Upgrades Â
             ("Progress to Milestone ${milestone.roman}: ".gray + "${(progress * 100).toInt()}%".aqua).unitalic,
             ("-".repeat(numFilled).aqua + "-".repeat(numEmpty).gray + " $numLevels/$levelsNeeded".aqua).unitalic,
         ))
+        fillClear()
     }
 }
