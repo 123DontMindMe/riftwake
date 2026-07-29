@@ -39,20 +39,19 @@ class TheBlockComponent(val player: RiftwakePlayer) {
             if (SpawnComponent.isInSpawn(event.block.location))
                 return@blockPlace
             if (!event.isCancelled)
-                println("registered: " + PlayerPlacedRegistry.registerBlock(event.block))
+                PlayerPlacedRegistry.registerBlock(event.block)
         }
 
         player.onBlockDropItems += blockDrops@{ event ->
             if (SpawnComponent.isInSpawn(event.block.location))
                 return@blockDrops
             val wasPlayerPlaced = PlayerPlacedRegistry.unregisterBlock(event.block)
-            println("unregistered: " + wasPlayerPlaced)
             if (!wasPlayerPlaced) {
-                println("roll double drop")
-                // TODO: should probably exclude chests?
+                if (event.block.type == Material.CHEST)
+                    return@blockDrops
+
                 val block = block ?: return@blockDrops
                 if (Math.random() < block.doubleDropsChance) {
-                    println("success")
                     val iterator = event.items.listIterator()
                     while (iterator.hasNext()) {
                         val item = iterator.next()
