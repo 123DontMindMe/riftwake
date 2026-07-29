@@ -8,7 +8,6 @@ import org.bukkit.Material
 import org.bukkit.TreeType
 import org.bukkit.block.Block
 import org.bukkit.configuration.ConfigurationSection
-import org.bukkit.entity.Player
 import java.util.*
 
 object TheBlockRegistry {
@@ -29,9 +28,10 @@ object TheBlockRegistry {
         }
     }
 
-    operator fun contains(block: Block): Boolean {
-        return block in blocksByLocation
-    }
+    operator fun contains(block: Block) = block in blocksByLocation
+    operator fun contains(owner: UUID) = owner in blocksByOwner
+    operator fun get(block: Block) = blocksByLocation[block]
+    operator fun get(owner: UUID) = blocksByOwner[owner]
 
     fun register(block: TheBlock, isFromFile: Boolean = false) {
         if (block.owner in blocksByOwner)
@@ -51,11 +51,15 @@ object TheBlockRegistry {
 class TheBlock {
     var block: Block private set
     val owner: UUID
-    val upgradeLevels: MutableMap<String, Int> = HashMap()
-    private val disabledUpgrades = HashSet<String>()
+    private val upgradeLevels = mutableMapOf<String, Int>()
+    private val disabledUpgrades = mutableSetOf<String>()
     val previewTable = TieredTable<Material>()
     val spawnTable = TieredTable<Spawnable>()
     var growthChance = 0.0
+    var totalUpgradeLevels = 0
+        private set
+    val milestoneLevel get() = totalUpgradeLevels.floorDiv(10)
+    val doubleDropsChance get() = milestoneLevel * 0.01
 
     init {
         previewTable.set(tier=0, chance=70.0, Material.DIRT)
@@ -94,6 +98,7 @@ class TheBlock {
             val upgrade = UpgradeRegistry.upgrades[key] ?: throw ConfigurationException("non-existent upgrade '$key'")
             val level = upgrades.getInt(key)
             upgradeLevels[key] = level
+            totalUpgradeLevels += level
             upgrade.onUpgrade(this, level)
         }
     }
@@ -115,11 +120,10 @@ class TheBlock {
             spawnTable.pull().spawn(this)
         }
 
-    fun previewPull() = previewTable.pull()
     fun spawn() = spawnTable.pull().spawn(this)
-    fun getLevel(key: String) = upgradeLevels[key] ?: 0
-    fun hasPurchased(key: String) = getLevel(key) > 0
-    fun isLocked(upgrade: Upgrade) = upgrade.dependencies.any { !hasPurchased(it.key) }
+    fun getLevel(upgrade: Upgrade) = upgradeLevels[upgrade.key] ?: 0
+    fun hasPurchased(upgrade: Upgrade) = getLevel(upgrade) > 0
+    fun isLocked(upgrade: Upgrade) = upgrade.dependencies.any { !hasPurchased(it) }
     fun isDisabled(upgrade: Upgrade) = upgrade.key in disabledUpgrades
     fun disable(upgrade: Upgrade) {
         disabledUpgrades.add(upgrade.key)
@@ -127,7 +131,7 @@ class TheBlock {
     }
     fun enable(upgrade: Upgrade) {
         disabledUpgrades.remove(upgrade.key)
-        upgrade.onUpgrade(this, getLevel(upgrade.key))
+        upgrade.onUpgrade(this, getLevel(upgrade))
     }
 
     fun serialize(): Map<String, Any> = linkedMapOf(
@@ -139,13 +143,15 @@ class TheBlock {
         for (key in upgradeLevels.keys)
             UpgradeRegistry.upgrades[key]?.onUpgrade(this, 0)
         upgradeLevels.clear()
+        totalUpgradeLevels = 0
     }
 
-    fun upgrade(key: String) {
-        val upgrade = UpgradeRegistry.upgrades[key]!!
-        val newLevel = getLevel(key) + 1
-        upgradeLevels[key] = newLevel
-        upgrade.onUpgrade(this, newLevel)
+    fun upgrade(upgrade: Upgrade) {
+        val newLevel = getLevel(upgrade) + 1
+        upgradeLevels[upgrade.key] = newLevel
+        totalUpgradeLevels++
+        if (!isDisabled(upgrade))
+            upgrade.onUpgrade(this, newLevel)
     }
 
     val numMiningPurchased: Int get() = upgradeLevels.count { (key, level) ->
@@ -166,29 +172,5 @@ class TheBlock {
     }
     val numBuildingDisabled: Int get() = upgradeLevels.keys.count { key ->
         key in UpgradeRegistry.buildingUpgrades && key in disabledUpgrades
-    }
-
-    fun getNumFarmingAffordable(player: Player): Int {
-        var num = 0
-        for ((key, upgrade) in UpgradeRegistry.farmingUpgrades)
-            if (player.inventory.contains(upgrade.upgradeItem, upgrade.getCost(getLevel(key))))
-                num++
-        return num
-    }
-
-    fun getNumMiningAffordable(player: Player): Int {
-        var num = 0
-        for ((key, upgrade) in UpgradeRegistry.miningUpgrades)
-            if (player.inventory.contains(upgrade.upgradeItem, upgrade.getCost(getLevel(key))))
-                num++
-        return num
-    }
-
-    fun getNumBuildingAffordable(player: Player): Int {
-        var num = 0
-        for ((key, upgrade) in UpgradeRegistry.buildingUpgrades)
-            if (player.inventory.contains(upgrade.upgradeItem, upgrade.getCost(getLevel(key))))
-                num++
-        return num
     }
 }

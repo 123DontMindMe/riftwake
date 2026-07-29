@@ -116,18 +116,21 @@ val PlayerMoveEvent.cursorLocation: Location
         return cursorLocation
     }
 
-fun Player.subtractItem(material: Material, amount: Int): Boolean {
+private fun Player.stacksContaining(material: Material, amount: Int): List<ItemStack>? {
     var total = 0
-    val stacks = ArrayList<ItemStack>()
-
+    val stacks = mutableListOf<ItemStack>()
     for (item in inventory.contents)
         if (item != null && item.type == material) {
             total += item.amount
-            stacks.add(item)
+            stacks += item
+            if (total >= amount)
+                return stacks
         }
+    return null
+}
 
-    if (total < amount)
-        return false
+fun Player.subtractItem(material: Material, amount: Int): Boolean {
+    val stacks = stacksContaining(material, amount) ?: return false
 
     var remainingCost = amount
     for (stack in stacks) {
@@ -140,6 +143,25 @@ fun Player.subtractItem(material: Material, amount: Int): Boolean {
         remainingCost -= stackAmount
     }
 
+    return true
+}
+
+fun Player.subtractItems(vararg materials: Material, amount: Int): Boolean {
+    val allStacks = mutableListOf<List<ItemStack>>()
+    for (material in materials)
+        allStacks += stacksContaining(material, amount) ?: return false
+    for (stacks in allStacks) {
+        var remainingCost = amount
+        for (stack in stacks) {
+            val stackAmount = stack.amount
+            if (remainingCost < stackAmount) {
+                stack.subtract(remainingCost)
+                break
+            }
+            stack.amount = 0
+            remainingCost -= stackAmount
+        }
+    }
     return true
 }
 

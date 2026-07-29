@@ -13,6 +13,20 @@ import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import java.util.*
 
+fun List<Component>.commaJoin(): Component {
+    if (isEmpty())
+        return "".comp()
+    if (size == 1)
+        return first()
+    val builder = Component.text()
+    for ((index, component) in withIndex()) {
+        builder.append(component)
+        if (index < size - 1)
+            builder.append(", ".comp())
+    }
+    return builder.build()
+}
+
 fun List<Component>.andJoin(): Component {
     if (isEmpty())
         return "".comp()
@@ -21,7 +35,7 @@ fun List<Component>.andJoin(): Component {
     if (size == 2)
         return get(0).append(" and ".comp()).append(get(1))
     val builder = Component.text()
-    for ((index, component) in this.withIndex()) {
+    for ((index, component) in withIndex()) {
         builder.append(component)
         if (index < size - 2)
             builder.append(", ".comp())

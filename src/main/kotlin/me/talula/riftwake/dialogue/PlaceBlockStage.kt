@@ -3,10 +3,12 @@ package me.talula.riftwake.dialogue
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
+import me.talula.riftwake.spawn.SpawnComponent
 import me.talula.riftwake.temporaries.BlockCoordDisplay
 import me.talula.riftwake.utils.cursorLocation
 import me.talula.riftwake.utils.green
 import me.talula.riftwake.utils.parse
+import me.talula.riftwake.utils.red
 import me.talula.riftwake.utils.toStateType
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.scheduler.BukkitTask
@@ -45,6 +47,12 @@ class PlaceBlockStage: DialogueStage() {
     }
 
     override fun onMove(event: PlayerMoveEvent) {
+        if (SpawnComponent.isInSpawn(event.cursorLocation)) {
+            val player = player ?: return
+            player.sendMessage("You can't place your block in spawn.".red)
+            player.dialogue.cancel()
+            return
+        }
         cursorDisplay?.location = event.cursorLocation
     }
 
@@ -60,6 +68,11 @@ class PlaceBlockStage: DialogueStage() {
         }
 
         val location = cursorDisplay.location
+        if (SpawnComponent.isInSpawn(location)) {
+            player.sendMessage("You can't place your block in spawn.".red)
+            player.dialogue.cancel()
+            return
+        }
         // must be done sync
         Riftwake.runTask {
             player.block.setBlockLocation(location)

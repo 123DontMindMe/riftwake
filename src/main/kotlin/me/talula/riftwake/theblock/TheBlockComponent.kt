@@ -1,13 +1,16 @@
 package me.talula.riftwake.theblock
 
+import com.destroystokyo.paper.ParticleBuilder
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.constants.IntConstant
 import me.talula.riftwake.constants.TimeConstant
 import me.talula.riftwake.islands.Structures
+import me.talula.riftwake.spawn.SpawnComponent
 import me.talula.riftwake.utils.*
 import org.bukkit.Location
 import org.bukkit.Material
+import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
 import org.bukkit.inventory.ItemStack
@@ -32,16 +35,80 @@ class TheBlockComponent(val player: RiftwakePlayer) {
     private var teleportTask: BukkitTask? = null
 
     init {
+        player.onPlaceBlock += blockPlace@{ event ->
+            if (SpawnComponent.isInSpawn(event.block.location))
+                return@blockPlace
+            if (!event.isCancelled)
+                println("registered: " + PlayerPlacedRegistry.registerBlock(event.block))
+        }
+
+        player.onBlockDropItems += blockDrops@{ event ->
+            if (SpawnComponent.isInSpawn(event.block.location))
+                return@blockDrops
+            val wasPlayerPlaced = PlayerPlacedRegistry.unregisterBlock(event.block)
+            println("unregistered: " + wasPlayerPlaced)
+            if (!wasPlayerPlaced) {
+                println("roll double drop")
+                // TODO: should probably exclude chests?
+                val block = block ?: return@blockDrops
+                if (Math.random() < block.doubleDropsChance) {
+                    println("success")
+                    val iterator = event.items.listIterator()
+                    while (iterator.hasNext()) {
+                        val item = iterator.next()
+                        val amount = item.itemStack.amount * 2
+                        if (amount > item.itemStack.maxStackSize)
+                            iterator.add(item)  // inserts before the current element so it doesn't go forever
+                        else
+                            item.itemStack.amount = amount
+                    }
+                    player.playSound(Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.BLOCKS, 1f, 2f)
+                    ParticleBuilder(Particle.COMPOSTER)
+                        .location(block.location.toCenterLocation())
+                        .count(10)
+                        .offset(0.5, 0.5, 0.5)
+                        .spawn()
+                }
+            }
+        }
+
         player.onBreakBlock += blockBreak@{ event ->
-            val block = TheBlockRegistry.blocksByLocation[event.block] ?: return@blockBreak
+            val block = TheBlockRegistry[event.block] ?: return@blockBreak
             event.isDropItems = false
-            val drops = if (event.block.type == Material.AMETHYST_BLOCK)
+            var drops = if (event.block.type == Material.AMETHYST_BLOCK)
                 listOf(ItemStack.of(Material.AMETHYST_SHARD, 4))
             else
                 // even though RiftwakePlayer implements Player, some Paper methods like this one explicitly
                 // cast the Player to a CraftPlayer (which a RiftwakePlayer obviously isn't), hence passing in
                 // the craftPlayer being required
                 event.block.getDrops(player.inventory.itemInMainHand, player.craftPlayer)
+
+            val wasPlayerPlaced = PlayerPlacedRegistry.unregisterBlock(event.block)
+            println("unregistered: " + !wasPlayerPlaced)
+            val ourBlock = this.block
+            if (!wasPlayerPlaced && ourBlock != null) {
+                println("roll double drop")
+                if (Math.random() < block.doubleDropsChance) {
+                    println("success")
+                    val newDrops = mutableListOf<ItemStack>()
+                    for (drop in drops) {
+                        val amount = drop.amount * 2
+                        if (amount > drop.maxStackSize) {
+                            newDrops += drop
+                            newDrops += drop
+                        }
+                        else
+                            newDrops += drop.asQuantity(amount)
+                    }
+                    drops = newDrops
+                    player.playSound(Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.BLOCKS, 1f, 2f)
+                    ParticleBuilder(Particle.COMPOSTER)
+                        .location(block.location.toCenterLocation())
+                        .count(10)
+                        .offset(0.5, 0.5, 0.5)
+                        .spawn()
+                }
+            }
 
             for (drop in drops) {
                 val item = player.world.dropItem(block.location.toCenterLocation().add(0.0, 0.5, 0.0), drop)
@@ -60,7 +127,7 @@ class TheBlockComponent(val player: RiftwakePlayer) {
                 UpgradeMenuGUI(player).open()
                 event.isCancelled = true
             }
-            else TheBlockRegistry.blocksByLocation[block]?.let {
+            else TheBlockRegistry[block]?.let {
                 player.sendMessage(
                     ("<yellow|This block is owned by <green|${Riftwake.server.getOfflinePlayer(it.owner).name}>. " +
                     "You can still mine it for resources!>").parse())
@@ -77,6 +144,15 @@ class TheBlockComponent(val player: RiftwakePlayer) {
             }
         }
     }
+
+    fun canAfford(upgrade: Upgrade): Boolean {
+        val block = block ?: throw IllegalStateException("Player doesn't have a block yet")
+        val cost = upgrade.getCost(block.getLevel(upgrade))
+        return upgrade.upgradeItems.all { player.inventory.contains(it, cost) }
+    }
+    val numFarmingAffordable get() = UpgradeRegistry.farmingUpgrades.values.count { canAfford(it) }
+    val numMiningAffordable get() = UpgradeRegistry.miningUpgrades.values.count { canAfford(it) }
+    val numBuildingAffordable get() = UpgradeRegistry.buildingUpgrades.values.count { canAfford(it) }
 
     fun setBlockLocation(location: Location) {
         val currentBlock = block

@@ -20,6 +20,7 @@ import me.talula.riftwake.dialogue.PlaceBlockStage
 import me.talula.riftwake.economy.AuctionRegistry
 import me.talula.riftwake.islands.Structures
 import me.talula.riftwake.items.Items
+import me.talula.riftwake.theblock.PlayerPlacedRegistry
 import me.talula.riftwake.theblock.TheBlockRegistry
 import me.talula.riftwake.theblock.UpgradeMenuGUI
 import me.talula.riftwake.utils.*
@@ -39,6 +40,8 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.*
+import org.bukkit.event.world.ChunkLoadEvent
+import org.bukkit.event.world.ChunkUnloadEvent
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.scoreboard.Team
@@ -200,6 +203,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
         registerCommand(Commands.literal("createblock")
             .runPlayer { player ->
+                if (player.spawn.isInSpawn)
+                    throw CommandFail("You can't use this command in spawn.".red)
                 player.dialogue.start(
                     cancelMessage = "Cancelled block placement.".red,
                     PlaceBlockStage()
@@ -375,6 +380,11 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     }
 
     @EventHandler
+    fun onPlayerBlockDropItems(event: BlockDropItemEvent) {
+        playerRegistry[event.player]?.onBlockDropItems(event)
+    }
+
+    @EventHandler
     fun onPlayerPlaceBlock(event: BlockPlaceEvent) = playerRegistry[event.player]?.onPlaceBlock(event)
 
     @EventHandler
@@ -443,6 +453,11 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             player.sendMessage("You can't use commands in combat.".darkRed)
         }
     }
+
+    @EventHandler
+    fun onChunkLoad(event: ChunkLoadEvent) = PlayerPlacedRegistry.registerChunk(event.chunk)
+    @EventHandler
+    fun onChunkUnload(event: ChunkUnloadEvent) = PlayerPlacedRegistry.unregisterChunk(event.chunk)
 
     override fun onPacketReceive(event: PacketReceiveEvent) {
         if (event.packetType == PacketType.Play.Client.INTERACT_ENTITY) {

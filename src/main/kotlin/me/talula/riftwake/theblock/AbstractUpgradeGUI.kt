@@ -37,13 +37,13 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
             if (upgrade.dependencies.any { block.isLocked(it) })
                 return emptyIcon
 
-            val currentLevel = block.getLevel(upgrade.key)
+            val currentLevel = block.getLevel(upgrade)
             val weight = upgrade.weightPerLevel * currentLevel
 
-            val unsatisfied = upgrade.dependencies.filter { !block.hasPurchased(it.key) }
-            if (unsatisfied.isNotEmpty())
+            val unsatisfied = upgrade.dependencies.filter { !block.hasPurchased(it) }
+            if (unsatisfied.any())
                 return createIcon(
-                    upgrade.name,
+                    upgrade.name + " (Locked)".red,
                     upgrade.icon,
                     NamedTextColor.RED.joinLore("Requires ", unsatisfied.map { it.name }.andJoin(), " to unlock."),
                     glint=true)
@@ -58,9 +58,10 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
             lore += "<YELLOW|<>% → <>% chance>".parseLore(weight.maxPlaces(2), (weight + upgrade.weightPerLevel).maxPlaces(2))
 
             val cost = upgrade.getCost(currentLevel)
-            val canAffordColor = if (player.inventory.contains(upgrade.upgradeItem, cost))
+            val canAffordColor = if (upgrade.upgradeItems.all { player.inventory.contains(it, cost) })
                 NamedTextColor.GREEN else NamedTextColor.RED
-            lore += canAffordColor.joinLoreLine("Cost: ", cost, " ", Component.translatable(upgrade.upgradeItem))
+            lore += canAffordColor.joinLoreLine(
+                "Cost: ", cost, " ", upgrade.upgradeItems.map { Component.translatable(it) }.commaJoin())
             lore.addAll(upgrade.description)
 
             if (currentLevel > 0) {
@@ -78,7 +79,7 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
                 player.playSound(Sound.ENTITY_VILLAGER_NO, SoundCategory.UI, 1f, 1f)
                 return
             }
-            if (event.isRightClick && block.hasPurchased(upgrade.key)) {
+            if (event.isRightClick && block.hasPurchased(upgrade)) {
                 if (block.isDisabled(upgrade))
                     block.enable(upgrade)
                 else
@@ -87,11 +88,11 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
                 player.playSound(Sound.UI_BUTTON_CLICK, SoundCategory.UI, 0.8f, 1f)
                 return
             }
-            if (!player.subtractItem(upgrade.upgradeItem, upgrade.getCost(block.getLevel(upgrade.key)))) {
+            if (!player.subtractItems(*upgrade.upgradeItems.toTypedArray(), amount=upgrade.getCost(block.getLevel(upgrade)))) {
                 player.playSound(Sound.ENTITY_VILLAGER_NO, SoundCategory.UI, 1f, 1f)
                 return
             }
-            block.upgrade(upgrade.key)
+            block.upgrade(upgrade)
             updateIcons()
             player.playSound(Sound.BLOCK_NOTE_BLOCK_HARP, SoundCategory.UI, 1f, 2f)
         }

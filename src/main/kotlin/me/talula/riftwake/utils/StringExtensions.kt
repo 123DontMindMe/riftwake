@@ -4,6 +4,35 @@ import java.math.BigDecimal
 import java.math.MathContext
 import java.text.DecimalFormat
 
+val Int.roman: String get() {
+    return "I".repeat(this)
+        .replace("IIIII", "V")
+        .replace("IIII", "IV")
+        .replace("VV", "X")
+        .replace("VIV", "IX")
+        .replace("XXXXX", "L")
+        .replace("XXXX", "XL")
+        .replace("LL", "C")
+        .replace("LXL", "XC")
+        .replace("CCCCC", "D")
+        .replace("CCCC", "CD")
+        .replace("DD", "M")
+        .replace("DCD", "CM")
+}
+
+val Int.ordinal: String get() {
+    if (this <= 0)
+        throw IllegalArgumentException("Must be positive, got $this")
+    if (this in 11..13)
+        return "${this}th"
+    return when (this % 10) {
+        1 -> "${this}st"
+        2 -> "${this}nd"
+        3 -> "${this}rd"
+        else -> "${this}th"
+    }
+}
+
 val Long.withCommas: String get() = DecimalFormat("#,##0").format(this)
 
 fun Double.sigFigs(precision: Int): String = BigDecimal(this).round(MathContext(precision)).toPlainString()

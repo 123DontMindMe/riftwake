@@ -21,6 +21,8 @@ object UpgradeRegistry {
     val farmingUpgrades: Map<String, Upgrade> field = mutableMapOf()
     val buildingUpgrades: Map<String, Upgrade> field = mutableMapOf()
     val upgrades: Map<String, Upgrade> field = mutableMapOf()
+    var maxUpgradeLevels = 0
+        private set
 
     init {
         for ((index, key) in Riftwake.getFile("tiers.txt").readLines().withIndex())
@@ -35,6 +37,7 @@ object UpgradeRegistry {
             }
             upgrades[key] = upgrade
             miningUpgrades[key] = upgrade
+            maxUpgradeLevels += upgrade.maxLevel
         }
         for ((key, section) in farmingFile.sections) {
             val upgrade = try {
@@ -45,6 +48,7 @@ object UpgradeRegistry {
             }
             upgrades[key] = upgrade
             farmingUpgrades[key] = upgrade
+            maxUpgradeLevels += upgrade.maxLevel
         }
         for ((key, section) in buildingFile.sections) {
             val upgrade = try {
@@ -55,6 +59,7 @@ object UpgradeRegistry {
             }
             upgrades[key] = upgrade
             buildingUpgrades[key] = upgrade
+            maxUpgradeLevels += upgrade.maxLevel
         }
     }
 
@@ -73,7 +78,7 @@ abstract class Upgrade {
     val key: String
     val tier: Int
     val dependencies: List<Upgrade>
-    val upgradeItem: Material
+    val upgradeItems: List<Material>
     val maxLevel: Int
     val weightPerLevel: Double
     val startCost: Int
@@ -94,7 +99,7 @@ abstract class Upgrade {
                 throw ConfigurationException("'needs' contains non-existent key '$k'")
         } ?: listOf()
 
-        upgradeItem = data.getString("upgrade-with")?.let(Material::valueOf) ?:
+        upgradeItems = data.getString("upgrade-with")?.split(',')?.map { s -> Material.valueOf(s.trim()) } ?:
             throw ConfigurationException("missing 'upgrade-with'")
 
         maxLevel = data.getInt("max-level")

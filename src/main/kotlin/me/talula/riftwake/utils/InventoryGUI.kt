@@ -132,13 +132,10 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
     inner class EmptyButton(index: Int) : StaticButton(index, emptyIcon)
 
     companion object {
-        @JvmStatic
-        protected var emptyIcon = createIcon(null, Material.GRAY_STAINED_GLASS_PANE)
-        @JvmStatic
-        protected var clearIcon = createIcon(null, Material.LIGHT_GRAY_STAINED_GLASS_PANE)
+        var emptyIcon = createIcon(null, Material.GRAY_STAINED_GLASS_PANE)
+        var clearIcon = createIcon(null, Material.LIGHT_GRAY_STAINED_GLASS_PANE)
 
-        @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, amount: Int = 1, glint: Boolean = false): ItemStack {
+        fun createIcon(name: Component?, material: Material, amount: Int = 1, glint: Boolean = false): ItemStack {
             val button = ItemStack.of(material, amount)
             button.editMeta { meta ->
                 if (glint)
@@ -159,43 +156,37 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
             return button
         }
 
-        @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, amount: Int, vararg lore: String, glint: Boolean = false): ItemStack {
+        fun createIcon(name: Component?, material: Material, amount: Int, vararg lore: String, glint: Boolean = false): ItemStack {
             val button = createIcon(name, material, amount, glint)
             button.lore(Components.loreLines(*lore))
             return button
         }
 
-        @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, amount: Int, vararg lore: Component, glint: Boolean = false): ItemStack {
+        fun createIcon(name: Component?, material: Material, amount: Int, vararg lore: Component, glint: Boolean = false): ItemStack {
             val button = createIcon(name, material, amount, glint)
             button.lore(listOf(*lore))
             return button
         }
 
-        @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, amount: Int, lore: List<Component>, glint: Boolean = false): ItemStack {
+        fun createIcon(name: Component?, material: Material, amount: Int, lore: List<Component>, glint: Boolean = false): ItemStack {
             val button = createIcon(name, material, amount, glint)
             button.lore(lore)
             return button
         }
 
-        @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, vararg lore: String, glint: Boolean = false): ItemStack {
+        fun createIcon(name: Component?, material: Material, vararg lore: String, glint: Boolean = false): ItemStack {
             val button = createIcon(name, material, 1, glint)
             button.lore(Components.loreLines(*lore))
             return button
         }
 
-        @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, vararg lore: Component, glint: Boolean = false): ItemStack {
+        fun createIcon(name: Component?, material: Material, vararg lore: Component, glint: Boolean = false): ItemStack {
             val button = createIcon(name, material, 1, glint)
             button.lore(listOf(*lore))
             return button
         }
 
-        @JvmStatic
-        protected fun createIcon(name: Component?, material: Material, lore: List<Component>, glint: Boolean = false): ItemStack {
+        fun createIcon(name: Component?, material: Material, lore: List<Component>, glint: Boolean = false): ItemStack {
             val button = createIcon(name, material, 1, glint)
             button.lore(lore)
             return button
