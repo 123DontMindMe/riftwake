@@ -38,6 +38,7 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
                 return emptyIcon
 
             val currentLevel = block.getLevel(upgrade)
+            val nextLevel = (currentLevel + 1).coerceAtMost(upgrade.maxLevel)
             val weight = upgrade.weightPerLevel * currentLevel
 
             val unsatisfied = upgrade.dependencies.filter { !block.hasPurchased(it) }
@@ -50,19 +51,25 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
             val disabled = block.isDisabled(upgrade)
 
             val name = if (disabled)
-                Components.join(upgrade.name.strikethrough, " (Disabled) ".red, "(Level ${currentLevel + 1})".gray)
+                Components.join(upgrade.name.strikethrough, " (Disabled) ".red, "(Level $nextLevel)".gray)
             else
-                upgrade.name + " (Level ${currentLevel + 1})".gray
+                upgrade.name + " (Level $nextLevel)".gray
 
             val lore = mutableListOf<Component>()
-            lore += "<YELLOW|<>% → <>% chance>".parseLore(weight.maxPlaces(2), (weight + upgrade.weightPerLevel).maxPlaces(2))
 
-            val cost = upgrade.getCost(currentLevel)
-            val canAffordColor = if (upgrade.upgradeItems.all { player.inventory.contains(it, cost) })
-                NamedTextColor.GREEN else NamedTextColor.RED
-            lore += canAffordColor.joinLoreLine(
-                "Cost: ", cost, " ", upgrade.upgradeItems.map { Component.translatable(it) }.commaJoin())
-            lore.addAll(upgrade.description)
+            if (currentLevel < upgrade.maxLevel) {
+                lore += "<YELLOW|<>% → <>% chance>".parseLore(weight.maxPlaces(2), (weight + upgrade.weightPerLevel).maxPlaces(2))
+                val cost = upgrade.getCost(currentLevel)
+                val canAffordColor = if (upgrade.upgradeItems.all { player.inventory.contains(it, cost) })
+                    NamedTextColor.GREEN else NamedTextColor.RED
+                lore += canAffordColor.joinLoreLine(
+                    "Cost: ", cost, " ", upgrade.upgradeItems.map { Component.translatable(it) }.commaJoin()
+                )
+                lore.addAll(upgrade.description)
+            } else {
+                lore += "${weight.maxPlaces(2)}% chance".yellow.unitalic
+                lore += "Max level reached!".green.unitalic
+            }
 
             if (currentLevel > 0) {
                 lore += if (disabled)
@@ -71,7 +78,7 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
                     "Right-click to disable".darkGray.unitalic
             }
 
-            return createIcon(name, upgrade.icon, currentLevel + 1, lore)
+            return createIcon(name, upgrade.icon, nextLevel, lore)
         }
 
         override fun onClick(event: InventoryClickEvent) {
@@ -86,6 +93,11 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
                     block.disable(upgrade)
                 setItem(getIcon())
                 player.playSound(Sound.UI_BUTTON_CLICK, SoundCategory.UI, 0.8f, 1f)
+                return
+            }
+            val currentLevel = block.getLevel(upgrade)
+            if (currentLevel >= upgrade.maxLevel) {
+                player.playSound(Sound.ENTITY_VILLAGER_NO, SoundCategory.UI, 1f, 1f)
                 return
             }
             if (!player.subtractItems(*upgrade.upgradeItems.toTypedArray(), amount=upgrade.getCost(block.getLevel(upgrade)))) {

@@ -96,7 +96,14 @@ class TheBlock {
         val upgrades = data.getConfigurationSection("upgrades") ?: return
         for (key in upgrades.getKeys(false)) {
             val upgrade = UpgradeRegistry.upgrades[key] ?: throw ConfigurationException("non-existent upgrade '$key'")
-            val level = upgrades.getInt(key)
+            var level = upgrades.getInt(key)
+            if (level > upgrade.maxLevel) {
+                Riftwake.logger.warn(
+                    "Player ${Riftwake.server.getOfflinePlayer(owner).name} (uuid=$owner) had upgrade '${upgrade.key}' " +
+                    "at level $level when the max is ${upgrade.maxLevel}"
+                )
+                level = upgrade.maxLevel
+            }
             upgradeLevels[key] = level
             totalUpgradeLevels += level
             upgrade.onUpgrade(this, level)

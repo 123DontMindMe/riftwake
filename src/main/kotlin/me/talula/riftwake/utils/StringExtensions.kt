@@ -5,7 +5,7 @@ import java.math.MathContext
 import java.text.DecimalFormat
 
 val Int.roman: String get() {
-    return "I".repeat(this)
+    return if (this == 0) "0" else "I".repeat(this)
         .replace("IIIII", "V")
         .replace("IIII", "IV")
         .replace("VV", "X")

@@ -69,7 +69,8 @@ class MilestonesGUI(player: RiftwakePlayer): InventoryGUI(player, 6, "Upgrades Â
                 ("Purchase ".gray + "$levelsNeeded upgrades".gold + " for a ".gray + "$milestone% chance".gold).unitalic,
                 ("to receive ".gray + "double drops".green + " when mining any block.".gray).unitalic,
                 "".comp(),
-                "UNLOCKED".green.unitalic
+                ("Progress to Milestone ${milestone.roman}: ".gray + "UNLOCKED".green).unitalic,
+                ("${"-".repeat(30)} $numLevels/$levelsNeeded").green.unitalic,
             ))
             return
         }
