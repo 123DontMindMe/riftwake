@@ -10,6 +10,7 @@ import org.bukkit.Sound
 import org.bukkit.SoundCategory
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
+import org.bukkit.persistence.PersistentDataType
 import org.bukkit.scheduler.BukkitTask
 import kotlin.math.pow
 
@@ -68,8 +69,14 @@ class CratePullGUI(player: RiftwakePlayer, crate: Crate): InventoryGUI(player, 3
 
     override fun onClose(event: InventoryCloseEvent) {
         animationTask.cancel()
-        player.give(reward)
-        player.sendMessage("You received ".gray + reward.hoverableStack + "!".gray)
+        val money = reward.getData("money-reward", PersistentDataType.INTEGER)
+        if (money == null) {
+            player.give(reward)
+            player.sendMessage("You received ".gray + reward.hoverableStack + "!".gray)
+        } else {
+            player.balance += money
+            player.sendMessage("You received ".gray + "$$money".gold + "!".gray)
+        }
         player.playSound(Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.UI, 1f, 1f)
     }
 

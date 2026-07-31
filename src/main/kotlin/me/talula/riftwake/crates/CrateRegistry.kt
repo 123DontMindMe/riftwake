@@ -53,6 +53,21 @@ object CrateRegistry {
         dailyLootTable.add(Items.createBridgeEgg(), 1.0)
         val dailyCrate = Crate("daily", "Daily".gold.bold, Location(null, 0.0, 0.0, 0.0), null, null, dailyLootTable)
 
+        Riftwake.registerCommand(Commands.literal("money-reward")
+            .requires { it.sender.isOp }
+            .then(Commands.argument("amount", IntegerArgumentType.integer())
+                .runPlayer { ctx, player ->
+                    val amount = IntegerArgumentType.getInteger(ctx, "amount")
+                    val item = ItemStack.of(Material.PAPER)
+                    item.editMeta {
+                        it.itemName("$$amount".gold)
+                        it.setData("money-reward", PersistentDataType.INTEGER, amount)
+                    }
+                    player.give(item)
+                }
+            )
+        )
+
         Riftwake.registerCommand(Commands.literal("daily")
             .replyPlayer { player ->
                 val lastUse = player.getData("last-daily-crate-use", PersistentDataType.LONG) ?: 0
