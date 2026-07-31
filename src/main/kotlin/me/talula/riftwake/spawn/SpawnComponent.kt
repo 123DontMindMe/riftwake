@@ -11,6 +11,7 @@ import org.bukkit.Sound
 import org.bukkit.SoundCategory
 import org.bukkit.block.BlockFace
 import org.bukkit.util.Vector
+import kotlin.math.absoluteValue
 
 class SpawnComponent(val player: RiftwakePlayer) {
     companion object {
@@ -37,6 +38,23 @@ class SpawnComponent(val player: RiftwakePlayer) {
                 Riftwake.server.scoreboardManager.mainScoreboard.getTeam("in-spawn")?.addPlayer(player.craft)
             else
                 Riftwake.server.scoreboardManager.mainScoreboard.getTeam("in-spawn")?.removePlayer(player.craft)
+
+            val origin = Vector(15.5, 0.0, 7.5)
+            val relativePos = event.to.toVector().subtract(origin)
+            relativePos.rotateAroundY(Math.PI / 4)
+            if (relativePos.x.absoluteValue < 1 && relativePos.z > 0 && relativePos.z < 11.3 && relativePos.y > 98 && relativePos.y < 102) {
+                val cooldown = player.block.randomTeleportCooldownRemaining
+                if (cooldown > 0) {
+                    if (player.sendMessageOnCooldown("rtp-portal", 40, "You must wait ${cooldown.toTimeString()} to random teleport again.".red)) {
+                        player.playSound(Sound.ENTITY_VILLAGER_NO, SoundCategory.MASTER, 1f, 1f)
+                        player.velocity = event.to.toVector().subtract(Vector(11.5, 98.0, 11.5)).normalize()
+                    }
+                } else {
+                    player.teleport(Location(Riftwake.world, 0.0, 1000.0, 0.0))
+                    player.block.randomTeleportNow()
+                    player.playSound(Sound.BLOCK_PORTAL_TRAVEL, SoundCategory.MASTER, 1f, 2f)
+                }
+            }
         }
 
         player.onTeleport += { event ->

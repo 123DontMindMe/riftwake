@@ -142,7 +142,7 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         }
 
         player.onMove += onMove@{ event ->
-            if (isTeleporting && event.hasChangedPosition()) {
+            if (teleportTask != null && event.hasChangedPosition()) {
                 isTeleporting = false
                 teleportTask?.cancel()
                 teleportTask = null
@@ -175,6 +175,25 @@ class TheBlockComponent(val player: RiftwakePlayer) {
 
     val randomTeleportCooldownRemaining get() = teleportCooldown() - (Riftwake.server.currentTick - lastTeleportTick)
 
+    fun randomTeleportNow() {
+        if (isTeleporting)
+            return
+        isTeleporting = true
+        player.sendActionBar("Teleporting you to a random location...".yellow)
+        getRandomTeleportLocation().thenAccept { location ->
+            Riftwake.runTask {
+                if (block == null)
+                    setBlockLocation(location)
+                else
+                    Riftwake.world.setType(location, Material.GLASS)
+                player.teleport(location.plus(0.5, 1.0, 0.5))
+                player.sendActionBar("You have been teleported to (${location.blockCoords}).".green)
+                lastTeleportTick = Riftwake.server.currentTick
+                isTeleporting = false
+            }
+        }
+    }
+
     fun startRandomTeleport() {
         if (isTeleporting)
             return
@@ -193,16 +212,16 @@ class TheBlockComponent(val player: RiftwakePlayer) {
 
         var location: Location? = null
         var secondsLeft = 5
-        getRandomTeleportLocation().thenAccept {
+        getRandomTeleportLocation().thenAccept { l ->
             if (teleportTask == null)
                 // teleport cancelled, don't do anything
                 return@thenAccept
             if (secondsLeft > 0)
                 // still waiting for count down, just set location
-                location = it
+                location = l
             else
                 // count down is already done, do the teleport
-                finishTeleport(it)
+                Riftwake.runTask { finishTeleport(l) }
         }
 
         teleportTask = Riftwake.runTaskTimer(0, 20) { task ->

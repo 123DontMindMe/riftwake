@@ -71,5 +71,17 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     override fun sendMessage(message: Component) =
         craftPlayer.sendPacket(WrapperPlayServerSystemChatMessage(false, message))
 
+    private val lastSent = mutableMapOf<String, Int>()
+    fun sendMessageOnCooldown(id: String, cooldown: Int, message: Component): Boolean {
+        val lastSent = lastSent[id]
+        val currentTick = Riftwake.server.currentTick
+        if (lastSent == null || currentTick - lastSent > cooldown) {
+            sendMessage(message)
+            this.lastSent[id] = currentTick
+            return true
+        }
+        return false
+    }
+
     val itemHeld get() = craftPlayer.inventory.itemInMainHand.takeUnless { it.isEmpty }
 }

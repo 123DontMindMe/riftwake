@@ -21,7 +21,7 @@ import org.bukkit.SoundCategory
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 
-class StoreSellMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Store » Sell".comp()) {
+class StoreSellMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Shop » Sell".comp()) {
     private companion object {
         val farming = readFile("shop/sell/farming.txt")
         val mining = readFile("shop/sell/mining.txt")
@@ -65,7 +65,7 @@ class StoreSellMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Store �
 class ItemInfo(val index: Int, val item: Material, val price: Int)
 
 class StoreSellGUI(player: RiftwakePlayer, val name: String, numRows: Int, items: List<ItemInfo>):
-    InventoryGUI(player, numRows, "Store » Sell » $name".comp())
+    InventoryGUI(player, numRows, "Shop » Sell » $name".comp())
 {
     init {
         for (item in items)
