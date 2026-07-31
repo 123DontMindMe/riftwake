@@ -16,6 +16,7 @@ import org.bukkit.SoundCategory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.Vector
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import kotlin.math.floor
 
@@ -26,11 +27,17 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         val maxY = IntConstant("rtp.max-y")
         val minFromSpawn = IntConstant("rtp.min-from-spawn")
         val minFromBorder = IntConstant("rtp.min-from-border")
+
+        val lastRtpTick = mutableMapOf<UUID, Int>()
     }
 
     val block get() = TheBlockRegistry.blocksByOwner[player.uniqueId]
 
-    private var lastTeleportTick = -teleportCooldown()
+    private var lastTeleportTick = lastRtpTick[player.uniqueId] ?: -teleportCooldown()
+        set(value) {
+            field = value
+            lastRtpTick[player.uniqueId] = value
+        }
     private var isTeleporting = false
     private var teleportTask: BukkitTask? = null
 

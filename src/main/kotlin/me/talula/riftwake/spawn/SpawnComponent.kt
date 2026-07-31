@@ -52,7 +52,7 @@ class SpawnComponent(val player: RiftwakePlayer) {
                 } else {
                     player.teleport(Location(Riftwake.world, 0.0, 1000.0, 0.0))
                     player.block.randomTeleportNow()
-                    player.playSound(Sound.BLOCK_PORTAL_TRAVEL, SoundCategory.MASTER, 1f, 2f)
+                    player.playSound(Sound.BLOCK_PORTAL_TRAVEL, SoundCategory.MASTER, 0.8f, 2f)
                 }
             }
         }
