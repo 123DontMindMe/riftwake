@@ -1,8 +1,10 @@
 package me.talula.riftwake.theblock
 
+import me.talula.riftwake.Riftwake
 import me.talula.riftwake.utils.getData
 import me.talula.riftwake.utils.setData
 import org.bukkit.Chunk
+import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.persistence.PersistentDataType
 
@@ -17,23 +19,34 @@ object PlayerPlacedRegistry {
         val array = chunk.getData("player-placed-blocks", PersistentDataType.INTEGER_ARRAY)
         if (array != null)
             for (i in array.indices step 3)
-                blocks += chunk.getBlock(array[i], array[i + 1], array[i + 2])
+                try {
+                    blocks += chunk.getBlock(array[i], array[i + 1], array[i + 2])
+                } catch (_: IllegalArgumentException) {
+                    Riftwake.logger.error(
+                        "Stored player-placed block in chunk (${chunk.x}, ${chunk.z}) " +
+                        "has invalid block coords (${array[i]}, ${array[i + 1]}, ${array[i + 2]})")
+                }
 
         map[chunk] = blocks
     }
 
     fun unregisterChunk(chunk: Chunk) {
-        println("unregisterChunk")
         val blocks = map.remove(chunk) ?: throw IllegalArgumentException("Chunk wasn't registered")
         if (blocks.isEmpty())
             return
         val array = IntArray(blocks.size * 3)
-        for ((index, block) in blocks.withIndex()) {
-            array[index] = block.x - (chunk.x * 16)
-            array[index + 1] = block.y
-            array[index + 2] = block.z - (chunk.z * 16)
+        var i = 0
+        for (block in blocks) {
+            // don't bother saving "player-placed" blocks that are actually just empty since
+            // they're just false positives (which is fine, it's too hard to keep track of all of them)
+            if (block.type == Material.AIR)
+                continue
+            array[i * 3] = block.x - (chunk.x * 16)
+            array[i * 3 + 1] = block.y
+            array[i * 3 + 2] = block.z - (chunk.z * 16)
+            i++
         }
-        chunk.setData("player-placed-blocks", PersistentDataType.INTEGER_ARRAY, array)
+        chunk.setData("player-placed-blocks", PersistentDataType.INTEGER_ARRAY, array.sliceArray(0 until i * 3))
     }
 
     fun isPlayerPlaced(block: Block): Boolean {
@@ -60,12 +73,16 @@ object PlayerPlacedRegistry {
             if (blocks.isEmpty())
                 continue
             val array = IntArray(blocks.size * 3)
-            for ((index, block) in blocks.withIndex()) {
-                array[index] = block.x - (chunk.x * 16)
-                array[index + 1] = block.y
-                array[index + 2] = block.z - (chunk.z * 16)
+            var i = 0
+            for (block in blocks) {
+                if (block.type == Material.AIR)
+                    continue
+                array[i * 3] = block.x - (chunk.x * 16)
+                array[i * 3 + 1] = block.y
+                array[i * 3 + 2] = block.z - (chunk.z * 16)
+                i++
             }
-            chunk.setData("player-placed-blocks", PersistentDataType.INTEGER_ARRAY, array)
+            chunk.setData("player-placed-blocks", PersistentDataType.INTEGER_ARRAY, array.sliceArray(0 until i * 3))
             println("saved " + array.contentToString())
         }
         map.clear()

@@ -1,5 +1,6 @@
 package me.talula.riftwake.utils
 
+import io.papermc.paper.event.player.PlayerInventorySlotChangeEvent
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import net.kyori.adventure.text.Component
@@ -56,6 +57,7 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
     open fun onClick(event: InventoryClickEvent) {}
     open fun onDrag(event: InventoryDragEvent) {}
     open fun onPlayerInventoryClick(event: InventoryClickEvent) {}
+    open fun onPlayerInventoryChange(event: PlayerInventorySlotChangeEvent) {}
     open fun onClose(event: InventoryCloseEvent) {}
 
     private fun processPotentialButtonClick(event: InventoryClickEvent) {
@@ -123,6 +125,8 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
 
     inner class SimpleButton(index: Int, icon: ItemStack, val onClick: (InventoryClickEvent) -> Unit) : Button(index, icon) {
         override fun onClick(event: InventoryClickEvent) = onClick.invoke(event)
+
+        constructor(x: Int, y: Int, icon: ItemStack, onClick: (InventoryClickEvent) -> Unit): this(x + y * 9, icon, onClick)
     }
 
     open inner class StaticButton(index: Int, icon: ItemStack?) : Button(index, icon) {

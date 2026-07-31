@@ -18,7 +18,7 @@ import org.bukkit.persistence.PersistentDataType
 import java.util.concurrent.CompletableFuture
 
 
-val OfflinePlayer.riftwake get() = Riftwake.playerRegistry[this]
+val OfflinePlayer.riftwake get() = Riftwake.playerRegistry[player]
 val RiftwakePlayer.riftwake get() = this
 val CommandSender.riftwake get() = (this as? OfflinePlayer)?.riftwake
 
@@ -28,17 +28,25 @@ val Player.craft: Player get() = if (this is RiftwakePlayer) craftPlayer else th
 
 val Player.luckPermsUser: User get() = Riftwake.luckPerms.getPlayerAdapter(Player::class.java).getUser(craft)
 
-fun OfflinePlayer.getBalance(): CompletableFuture<Long> {
+fun OfflinePlayer.getOfflineBalance(): CompletableFuture<Long> {
+    if (this is RiftwakePlayer)
+        return CompletableFuture.completedFuture(balance)
     return Riftwake.luckPerms.userManager.loadUser(uniqueId).thenApplyAsync { user ->
         user.cachedData.metaData.getMetaValue("balance", String::toLong).orElse(0)
     }
 }
 
-fun OfflinePlayer.setBalance(balance: Long): CompletableFuture<Void> {
+// should only be called for an actually offline player or by RiftwakePlayer's setter
+fun OfflinePlayer.setOfflineBalance(balance: Long): CompletableFuture<Void> {
     return Riftwake.luckPerms.userManager.modifyUser(uniqueId) { user ->
         user.data().clear(NodeType.META.predicate { it.metaKey == "balance" })
         user.data().add(MetaNode.builder("balance", balance.toString()).build())
     }
+}
+
+// should only be called for an actually offline player or by RiftwakePlayer's setter
+fun OfflinePlayer.modifyOfflineBalance(amount: Long): CompletableFuture<Void> {
+    return getOfflineBalance().thenCompose { balance -> setOfflineBalance(balance + amount) }
 }
 
 fun <P: Any, C: Any> PersistentDataViewHolder.hasData(key: String, type: PersistentDataType<P, C>): Boolean {

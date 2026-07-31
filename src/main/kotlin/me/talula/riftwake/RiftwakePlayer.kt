@@ -14,13 +14,14 @@ import me.talula.riftwake.spawn.SpawnComponent
 import me.talula.riftwake.theblock.TheBlockComponent
 import me.talula.riftwake.utils.luckPermsUser
 import me.talula.riftwake.utils.sendPacket
-import me.talula.riftwake.utils.setBalance
+import me.talula.riftwake.utils.setOfflineBalance
 import net.kyori.adventure.text.Component
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockDropItemEvent
+import org.bukkit.event.block.BlockMultiPlaceEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
@@ -28,7 +29,6 @@ import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.EntityPlaceEvent
 import org.bukkit.event.player.*
 import org.bukkit.inventory.ItemStack
-import java.util.concurrent.CompletableFuture
 import kotlin.jvm.optionals.getOrDefault
 
 class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
@@ -45,6 +45,7 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val onBreakBlock = Event<BlockBreakEvent>()
     val onBlockDropItems = Event<BlockDropItemEvent>()
     val onPlaceBlock = Event<BlockPlaceEvent>()
+    val onMultiPlaceBlock = Event<BlockMultiPlaceEvent>()
     val onPlaceEntity = Event<EntityPlaceEvent>()
     val onReceiveDamage = Event<EntityDamageEvent>()
     val onDamageEntity = Event<EntityDamageByEntityEvent>()
@@ -62,17 +63,8 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     var balance: Long = luckPermsUser.cachedData.metaData.getMetaValue("balance", String::toLong).getOrDefault(0L)
         set(value) {
             field = value
-            craftPlayer.setBalance(value)
+            Riftwake.enqueueTask { craftPlayer.setOfflineBalance(value) }
         }
-
-    fun getBalance(): CompletableFuture<Long> {
-        return CompletableFuture.completedFuture(balance)
-    }
-
-    fun setBalance(balance: Long): CompletableFuture<Void> {
-        this.balance = balance
-        return craftPlayer.setBalance(balance)
-    }
 
     override fun sendActionBar(message: Component) = craftPlayer.sendActionBar(message)
     // workaround for sendMessage not sending hover/click events

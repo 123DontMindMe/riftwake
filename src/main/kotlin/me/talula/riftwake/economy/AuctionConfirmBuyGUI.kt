@@ -1,15 +1,15 @@
 package me.talula.riftwake.economy
 
+import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.utils.*
-import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
 import org.bukkit.event.inventory.InventoryClickEvent
 
 class AuctionConfirmBuyGUI(player: RiftwakePlayer, val auctionItem: AuctionItem) :
-    InventoryGUI(player, 1, "Purchase ".comp() + Component.translatable(auctionItem.item) + " for ${auctionItem.cost}?".comp()
+    InventoryGUI(player, 1, "Purchase ".comp() + auctionItem.item.nameWithAmount + " for $${auctionItem.cost}?".comp()
 ) {
     init {
         inventory.setItem(0, createIcon("Confirm".green.bold, Material.GREEN_STAINED_GLASS_PANE))
@@ -38,11 +38,20 @@ class AuctionConfirmBuyGUI(player: RiftwakePlayer, val auctionItem: AuctionItem)
                 if (AuctionRegistry.items.remove(auctionItem)) {
                     player.balance -= auctionItem.cost
                     player.inventory.addItem(auctionItem.item)
-                    auctionItem.owner.getBalance().thenAcceptAsync { balance ->
-                        auctionItem.owner.setBalance(balance + auctionItem.cost)
+                    val onlineOwner = auctionItem.owner.riftwake
+                    if (onlineOwner == null)
+                        Riftwake.enqueueTask { auctionItem.owner.modifyOfflineBalance(auctionItem.cost) }
+                    else {
+                        onlineOwner.balance += auctionItem.cost
+                        onlineOwner.playSound(Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 1f, 2f)
+                        onlineOwner.playSound(Sound.ENTITY_VILLAGER_YES, SoundCategory.MASTER, 1f, 1f)
+                        onlineOwner.sendMessage(
+                            player.name.white + " purchased your auction item ".green +
+                            auctionItem.item.hoverableStack + " for $${auctionItem.cost}!".green
+                        )
                     }
                     close()
-                    player.sendMessage("Item purchased!".green)
+                    player.sendMessage(auctionItem.item.hoverableStack + " purchased for $${auctionItem.cost}!".green)
                     player.playSound(Sound.BLOCK_NOTE_BLOCK_HARP, SoundCategory.UI, 1f, 2f)
                 } else {
                     close()

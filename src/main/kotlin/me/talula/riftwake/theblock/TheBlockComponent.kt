@@ -42,6 +42,13 @@ class TheBlockComponent(val player: RiftwakePlayer) {
                 PlayerPlacedRegistry.registerBlock(event.block)
         }
 
+        player.onMultiPlaceBlock += blockPlace@{ event ->
+            if (SpawnComponent.isInSpawn(event.block.location))
+                return@blockPlace
+            for (state in event.replacedBlockStates)
+                PlayerPlacedRegistry.registerBlock(state.block)
+        }
+
         player.onBlockDropItems += blockDrops@{ event ->
             if (SpawnComponent.isInSpawn(event.block.location))
                 return@blockDrops

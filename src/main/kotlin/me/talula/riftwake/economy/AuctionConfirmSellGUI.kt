@@ -10,7 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 
 class AuctionConfirmSellGUI(player: RiftwakePlayer, val sellItem: ItemStack, val cost: Long) :
-    InventoryGUI(player, 1, "Sell ".comp() + Component.translatable(sellItem) + " for $cost?".comp()
+    InventoryGUI(player, 1, "Sell ".comp() + sellItem.nameWithAmount + " for $$cost?".comp()
 ) {
     init {
         inventory.setItem(0, createIcon("Confirm".green.bold, Material.GREEN_STAINED_GLASS_PANE))
@@ -38,7 +38,7 @@ class AuctionConfirmSellGUI(player: RiftwakePlayer, val sellItem: ItemStack, val
                 player.inventory.setItem(index, null)
                 AuctionRegistry.items += AuctionItem(player, sellItem, cost, AuctionRegistry.sellDuration())
                 close()
-                player.sendMessage(Component.translatable(sellItem) + " put up for auction for $cost.".green)
+                player.sendMessage(Component.translatable(sellItem) + " put up for auction for $$cost.".green)
                 player.playSound(Sound.BLOCK_NOTE_BLOCK_HARP, SoundCategory.UI, 1f, 2f)
             }
             8 -> {

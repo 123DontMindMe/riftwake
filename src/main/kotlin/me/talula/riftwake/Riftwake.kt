@@ -1,6 +1,5 @@
 package me.talula.riftwake
 
-import com.destroystokyo.paper.event.block.BlockDestroyEvent
 import com.github.retrooper.packetevents.PacketEvents
 import com.github.retrooper.packetevents.event.PacketListener
 import com.github.retrooper.packetevents.event.PacketListenerPriority
@@ -14,15 +13,16 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
 import io.papermc.paper.event.player.AsyncChatEvent
+import io.papermc.paper.event.player.PlayerInventorySlotChangeEvent
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import me.talula.riftwake.constants.Constant
 import me.talula.riftwake.crates.CratePreviewGUI
 import me.talula.riftwake.crates.CrateRegistry
 import me.talula.riftwake.dialogue.PlaceBlockStage
 import me.talula.riftwake.economy.AuctionRegistry
+import me.talula.riftwake.economy.StoreSellMenuGUI
 import me.talula.riftwake.islands.Structures
 import me.talula.riftwake.items.Items
-import me.talula.riftwake.spawn.SpawnComponent
 import me.talula.riftwake.temporaries.BlockCoordDisplay
 import me.talula.riftwake.theblock.PlayerPlacedRegistry
 import me.talula.riftwake.theblock.TheBlockRegistry
@@ -50,6 +50,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.scoreboard.Team
 import java.io.File
+import java.util.concurrent.CompletableFuture
 
 
 class Riftwake : JavaPlugin(), Listener, PacketListener {
@@ -112,6 +113,19 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             instance.lifecycleManager.registerEventHandler(LifecycleEvents.COMMANDS) { commands ->
                 commands.registrar().register(command.build())
             }
+        }
+
+        private var lastEnqueuedTask: CompletableFuture<*>? = null
+        fun <T> enqueueTask(operation: () -> CompletableFuture<T>): CompletableFuture<T> {
+            val result = CompletableFuture<T>()
+            val last = lastEnqueuedTask
+            if (last == null || last.isDone)
+                lastEnqueuedTask = operation().thenAccept { t -> result.complete(t) }
+            else
+                last.thenRun {
+                    lastEnqueuedTask = operation().thenAccept { t -> result.complete(t) }
+                }
+            return result
         }
     }
 
@@ -254,7 +268,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         )
 
         registerCommand(Commands.literal("balance")
-            .replyPlayer { player -> "Your current balance is ${player.balance}.".green }
+            .replyPlayer { player -> "Your current balance is $${player.balance}.".green }
             .then(Commands.literal("add")
                 .requires { it.sender.isOp }
                 .then(Commands.argument("amount", LongArgumentType.longArg())
@@ -262,7 +276,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                         val amount = ctx.getArgument("amount", Long::class.java)
                         val oldBalance = player.balance
                         player.balance += amount
-                        "Balance changed from $oldBalance to ${oldBalance + amount}".green
+                        "Balance changed from $$oldBalance to $${oldBalance + amount}".green
                     }
                 )
             )
@@ -289,6 +303,26 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
                         display.delete()
                 }
                 "Showing ${displays.size} player-placed blocks in your chunk".yellow
+            }
+        )
+
+        registerCommand(Commands.literal("sell")
+            .runPlayer { player ->
+                StoreSellMenuGUI(player).open()
+            }
+        )
+
+        registerCommand(Commands.literal("test")
+            .runPlayer { player ->
+                player.balance += 1
+//                player.getOfflineBalance().thenAcceptAsync { balance ->
+//                    println("(1) got " + balance)
+//                    player.setOfflineBalance(balance + 1)
+//                }
+                player.getOfflineBalance().thenAcceptAsync { balance ->
+                    println("(2) got " + balance)
+                    player.setOfflineBalance(balance + 1)
+                }
             }
         )
 
@@ -332,12 +366,17 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     }
 
     @EventHandler
+    fun onPlayerInventorySlotChange(event: PlayerInventorySlotChangeEvent) {
+        val gui = event.player.openInventory.topInventory.holder
+        if (gui is InventoryGUI)
+            gui.onPlayerInventoryChange(event)
+    }
+
+    @EventHandler
     fun onInventoryClose(event: InventoryCloseEvent) {
         val gui = event.inventory.holder
-        if (gui is InventoryGUI) {
+        if (gui is InventoryGUI)
             gui.onClose(event)
-            return
-        }
     }
 
     @EventHandler
@@ -405,6 +444,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
     @EventHandler
     fun onPlayerPlaceBlock(event: BlockPlaceEvent) = playerRegistry[event.player]?.onPlaceBlock(event)
+    @EventHandler
+    fun onPlayerMultiPlaceBlock(event: BlockMultiPlaceEvent) = playerRegistry[event.player]?.onMultiPlaceBlock(event)
 
     @EventHandler
     fun onPlayerPlaceEntity(event: EntityPlaceEvent) = playerRegistry[event.player]?.onPlaceEntity(event)
@@ -483,13 +524,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     fun onChunkLoad(event: ChunkLoadEvent) = PlayerPlacedRegistry.registerChunk(event.chunk)
     @EventHandler
     fun onChunkUnload(event: ChunkUnloadEvent) = PlayerPlacedRegistry.unregisterChunk(event.chunk)
-    @EventHandler
-    fun onBlockDestroy(event: BlockDestroyEvent) {
-        println(event)
-        if (SpawnComponent.isInSpawn(event.block.location))
-            return
-        PlayerPlacedRegistry.unregisterBlock(event.block)
-    }
+    @EventHandler(ignoreCancelled=true)
+    fun onBlockGrow(event: BlockGrowEvent) = PlayerPlacedRegistry.unregisterBlock(event.block)
 
     override fun onPacketReceive(event: PacketReceiveEvent) {
         if (event.packetType == PacketType.Play.Client.INTERACT_ENTITY) {

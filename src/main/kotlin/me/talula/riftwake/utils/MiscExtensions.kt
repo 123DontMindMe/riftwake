@@ -31,6 +31,17 @@ inline infix fun <T> (() -> T).until(predicate: (T) -> Boolean): T {
     return result
 }
 
+val ItemStack.nameWithAmount: Component get() {
+    val name = if (itemMeta.hasItemName())
+        itemMeta.itemName()
+    else
+        Component.translatable(this)
+    return if (maxStackSize == 1)
+        name
+    else
+        name + " x$amount".comp()
+}
+
 val ItemStack.hoverableStack: Component get() {
     val meta = itemMeta
     val name: Component
@@ -57,7 +68,6 @@ val ItemStack.hoverableStack: Component get() {
     else
         "[".color(color) + name + " x$amount]".color(color)
 
-    println(if (meta.hasLore()) meta.lore() else "none")
     return if (meta.hasLore())
         formattedName.hoverEvent(asHoverEvent())
     else

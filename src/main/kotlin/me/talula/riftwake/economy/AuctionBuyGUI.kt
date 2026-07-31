@@ -70,9 +70,9 @@ class AuctionBuyGUI(player: RiftwakePlayer): InventoryGUI(player, 6, "Auction Ho
             }
             val icon = auctionItem.item.clone()
             icon.lore(listOf(
-                "Cost: ${auctionItem.cost.withCommas}".yellow.unitalic,
-                "Time left: ${(auctionItem.duration - timeElapsed).toTimeString()}".yellow.unitalic,
-                if (player.balance >= auctionItem.cost) "Click to purchase".green.unitalic
+                ("Cost: ".gray + "$${auctionItem.cost.withCommas}".gold).unitalic,
+                ("Time left: ".gray + (auctionItem.duration - timeElapsed).toTimeString().gold).unitalic,
+                if (player.balance >= auctionItem.cost) "Click to purchase!".yellow.unitalic
                 else "You can't afford this item.".red.unitalic,
             ))
             setItem(icon)
