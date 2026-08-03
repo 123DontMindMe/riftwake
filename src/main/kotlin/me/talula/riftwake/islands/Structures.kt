@@ -7,6 +7,7 @@ import com.sk89q.worldedit.function.operation.Operations
 import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.regions.CuboidRegion
 import com.sk89q.worldedit.session.ClipboardHolder
+import com.sk89q.worldedit.world.block.BlockState
 import com.sk89q.worldedit.world.block.BlockTypes
 import io.papermc.paper.command.brigadier.Commands
 import me.talula.riftwake.Riftwake
@@ -28,6 +29,9 @@ import org.bukkit.util.BoundingBox
 import org.bukkit.util.Vector
 import java.io.FileInputStream
 import java.util.*
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.iterator
 
 object Structures {
     val worldRadius = IntConstant("structures.world-radius")
@@ -38,32 +42,39 @@ object Structures {
     val maxNearby = IntConstant("structures.spawners.max-nearby")
     val spawnCount = IntConstant("structures.spawners.count")
 
+    fun readChestWeights(): RandomTable<LootTable>? {
+        val chestTable = RandomTable<LootTable>()
+        for ((index, line) in Riftwake.getFile("structures/weights/chest-weights.txt").readLines().withIndex()) {
+            val (type, weight) = line.split(" ")
+            val lootTable = try { LootTables.valueOf(type) } catch (_: IllegalArgumentException) {
+                Riftwake.broadcastToOperators("No entity type named '$type' on line ${index + 1} of spawner weights file: '$line'".red)
+                return null
+            }
+            chestTable.add(lootTable.lootTable, weight.toDouble())
+        }
+        return chestTable
+    }
+
+    fun readSpawnerWeights(): RandomTable<EntityType>? {
+        val spawnerTable = RandomTable<EntityType>()
+        for ((index, line) in Riftwake.getFile("structures/weights/spawner-weights.txt").readLines().withIndex()) {
+            val (type, weight) = line.split(" ")
+            val entityType = try { EntityType.valueOf(type) } catch (_: IllegalArgumentException) {
+                Riftwake.broadcastToOperators("No entity type named '$type' on line ${index + 1} of spawner weights file: '$line'".red)
+                return null
+            }
+            spawnerTable.add(entityType, weight.toDouble())
+        }
+        return spawnerTable
+    }
+
     fun init() {
         Riftwake.registerCommand(Commands.literal("placestructures")
             .executes { ctx ->
                 val player = ctx.source.sender.riftwake ?: return@executes 0
 
-                val chestTable = RandomTable<LootTable>()
-                for ((index, line) in Riftwake.getFile("structures/weights/chest-weights.txt").readLines().withIndex()) {
-                    val (type, weight) = line.split(" ")
-                    val lootTable = try { LootTables.valueOf(type) } catch (_: IllegalArgumentException) {
-                        player.sendMessage(
-                            "No entity type named '$type' on line ${index + 1} of spawner weights file: '$line'".red)
-                        return@executes 0
-                    }
-                    chestTable.add(lootTable.lootTable, weight.toDouble())
-                }
-
-                val spawnerTable = RandomTable<EntityType>()
-                for ((index, line) in Riftwake.getFile("structures/weights/spawner-weights.txt").readLines().withIndex()) {
-                    val (type, weight) = line.split(" ")
-                    val entityType = try { EntityType.valueOf(type) } catch (_: IllegalArgumentException) {
-                        player.sendMessage(
-                            "No entity type named '$type' on line ${index + 1} of spawner weights file: '$line'".red)
-                        return@executes 0
-                    }
-                    spawnerTable.add(entityType, weight.toDouble())
-                }
+                val chestTable = readChestWeights() ?: return@executes 0
+                val spawnerTable = readSpawnerWeights() ?: return@executes 0
 
                 val layerTable = LayerTable()
                 val structures = try {
@@ -98,87 +109,11 @@ object Structures {
                         val centerX = actualChunkX * 16
                         val centerZ = actualChunkZ * 16
                         val y = (Math.random() * 100).toInt() - 63 + structure.height
-                        val to = BlockVector3(centerX + structure.widthX / 2, y, centerZ + structure.widthZ / 2)
 
                         player.sendMessage(
                             "Creating structure at chunk ($gridChunkX, $gridChunkZ), coords ($centerX, $y, $centerZ)...".yellow)
-                        player.sendMessage(
-                            "dimensions: ${structure.widthX} x ${structure.height} x ${structure.widthZ}")
-                        player.sendMessage("origin: ${structure.clipboard.origin}")
-                        player.sendMessage("to: $to")
 
-                        val layers = layerTable.pull()
-
-                        val boundStart = to.add(1, 1, 1)
-                        val boundEnd = boundStart.subtract(structure.clipboard.dimensions)
-                        val intersectingChunks = Riftwake.world.getIntersectingChunks(BoundingBox.of(
-                            Vector(boundStart.x(), boundStart.y(), boundStart.z()),
-                            Vector(boundEnd.x(), boundEnd.y(), boundEnd.z()))
-                        )
-
-                        for (chunk in intersectingChunks)
-                            Riftwake.world.loadChunk(chunk)
-
-                        Riftwake.world.edit { session ->
-                            Operations.complete(ClipboardHolder(structure.clipboard)
-                                .createPaste(session)
-                                // origin is 1 above so structure gets pasted 1 below, so shift it up by 1
-                                .to(to.add(0, 1, 0))
-                                .ignoreAirBlocks(true)
-                                .build())
-                        }
-                        Riftwake.world.setType(to.x(), to.y(), to.z(), Material.AIR)
-                        Riftwake.world.setType(boundEnd.x(), boundEnd.y(), boundEnd.z(), Material.AIR)
-
-                        for ((layer, block) in layers)
-                            Riftwake.world.edit { session ->
-                                session.replaceBlocks(
-                                    CuboidRegion(to, to.subtract(structure.clipboard.dimensions)),
-                                    BlockTypeMask(session, layer.replaceBlock),
-                                    block
-                                )
-                            }
-                        Riftwake.world.edit { session ->
-                            session.replaceBlocks(
-                                CuboidRegion(to, to.subtract(structure.clipboard.dimensions)),
-                                BlockTypeMask(session, BlockTypes.YELLOW_GLAZED_TERRACOTTA),
-                                BlockTypes.FARMLAND!!.defaultState
-                            )
-                        }
-
-                        for (spawner in structure.spawners) {
-                            val state = Riftwake.world.getBlockState(spawner.plus(boundEnd.toVector()))
-                            if (state !is CreatureSpawner) {
-                                player.sendMessage("Spawner not found at (${spawner.x()}, ${spawner.y()}, ${spawner.z()})".red)
-                                continue
-                            }
-                            val entityType = spawnerTable.pull()
-                            val entitySnapshot = Bukkit.getEntityFactory().createEntitySnapshot("{id:\"${entityType.key}\"}")
-                            state.spawnedType = entityType
-                            state.minSpawnDelay = minDelay()
-                            state.maxSpawnDelay = maxDelay()
-                            state.spawnCount = spawnCount()
-                            state.maxNearbyEntities = maxNearby()
-                            state.delay = initialDelay()
-                            state.setSpawnedEntity(SpawnerEntry(entitySnapshot, 1, SpawnRule(0, 15, 0, 15)))
-                            state.update()
-                        }
-
-                        for (chest in structure.chests) {
-                            val state = Riftwake.world.getBlockState(chest.plus(boundEnd.toVector()))
-                            if (state !is Chest) {
-                                player.sendMessage("Chest not found at (${chest.x()}, ${chest.y()}, ${chest.z()})".red)
-                                continue
-                            }
-                            chestTable.pull().fillInventory(
-                                state.inventory,
-                                Random(),
-                                LootContext.Builder(chest.toLocation(Riftwake.world)).build()
-                            )
-                        }
-
-                        for (chunk in intersectingChunks)
-                            Riftwake.world.unloadChunk(chunk)
+                        placeStructure(structure, BlockVector3(centerX, y, centerZ), layerTable, chestTable, spawnerTable)
 
                         player.sendMessage(
                             "Created structure at chunk ($actualChunkX, $actualChunkZ), coords ($centerX, $y, $centerZ)".green)
@@ -188,6 +123,87 @@ object Structures {
                 1
             }
         )
+    }
+
+    fun placeStructure(
+        structure: StructureInfo, center: BlockVector3,
+        layerTable: LayerTable, chestTable: RandomTable<LootTable>, spawnerTable: RandomTable<EntityType>
+    ): Pair<StructureInfo, BlockVector3> {
+        val layers = layerTable.pull()
+        val to = BlockVector3(center.x() + structure.widthX / 2, center.y() + structure.height / 2, center.z() + structure.widthZ / 2)
+
+        val boundStart = to.add(1, 1, 1)
+        val boundEnd = boundStart.subtract(structure.clipboard.dimensions)
+        val intersectingChunks = Riftwake.world.getIntersectingChunks(BoundingBox.of(
+            Vector(boundStart.x(), boundStart.y(), boundStart.z()),
+            Vector(boundEnd.x(), boundEnd.y(), boundEnd.z()))
+        )
+
+        for (chunk in intersectingChunks)
+            Riftwake.world.loadChunk(chunk)
+
+        Riftwake.world.edit { session ->
+            Operations.complete(ClipboardHolder(structure.clipboard)
+                .createPaste(session)
+                // origin is 1 above so structure gets pasted 1 below, so shift it up by 1
+                .to(to.add(0, 1, 0))
+                .ignoreAirBlocks(true)
+                .build())
+        }
+        Riftwake.world.setType(to.x(), to.y(), to.z(), Material.AIR)
+        Riftwake.world.setType(boundEnd.x(), boundEnd.y(), boundEnd.z(), Material.AIR)
+
+        for ((layer, block) in layers)
+            Riftwake.world.edit { session ->
+                session.replaceBlocks(
+                    CuboidRegion(to, to.subtract(structure.clipboard.dimensions)),
+                    BlockTypeMask(session, layer.replaceBlock),
+                    block
+                )
+            }
+        Riftwake.world.edit { session ->
+            session.replaceBlocks(
+                CuboidRegion(to, to.subtract(structure.clipboard.dimensions)),
+                BlockTypeMask(session, BlockTypes.YELLOW_GLAZED_TERRACOTTA),
+                BlockTypes.FARMLAND!!.defaultState
+            )
+        }
+
+        for (spawner in structure.spawners) {
+            val state = Riftwake.world.getBlockState(spawner.plus(boundEnd.toVector()))
+            if (state !is CreatureSpawner) {
+                Riftwake.broadcastToOperators("Spawner not found at (${spawner.x()}, ${spawner.y()}, ${spawner.z()})".red)
+                continue
+            }
+            val entityType = spawnerTable.pull()
+            val entitySnapshot = Bukkit.getEntityFactory().createEntitySnapshot("{id:\"${entityType.key}\"}")
+            state.spawnedType = entityType
+            state.minSpawnDelay = minDelay()
+            state.maxSpawnDelay = maxDelay()
+            state.spawnCount = spawnCount()
+            state.maxNearbyEntities = maxNearby()
+            state.delay = initialDelay()
+            state.setSpawnedEntity(SpawnerEntry(entitySnapshot, 1, SpawnRule(0, 15, 0, 15)))
+            state.update()
+        }
+
+        for (chest in structure.chests) {
+            val state = Riftwake.world.getBlockState(chest.plus(boundEnd.toVector()))
+            if (state !is Chest) {
+                Riftwake.broadcastToOperators("Chest not found at (${chest.x()}, ${chest.y()}, ${chest.z()})".red)
+                continue
+            }
+            chestTable.pull().fillInventory(
+                state.inventory,
+                Random(),
+                LootContext.Builder(chest.toLocation(Riftwake.world)).build()
+            )
+        }
+
+        for (chunk in intersectingChunks)
+            Riftwake.world.unloadChunk(chunk)
+
+        return structure to to
     }
 
     class StructureInfo(val clipboard: Clipboard) {
@@ -200,9 +216,15 @@ object Structures {
         val widthX = clipboard.dimensions.x()
         val height = clipboard.dimensions.y()
         val widthZ = clipboard.dimensions.z()
+
+        fun blockAt(x: Int, y: Int, z: Int): BlockState =
+            if (CuboidRegion(clipboard.dimensions, BlockVector3.ZERO).contains(BlockVector3(x, y, z)))
+                clipboard.getBlock(clipboard.region.minimumPoint.add(x, y, z))
+            else
+                BlockTypes.AIR!!.defaultState
     }
 
-    private fun readStructure(fileName: String): StructureInfo {
+    fun readStructure(fileName: String): StructureInfo {
         val file = Riftwake.getFile(fileName)
         val format = ClipboardFormats.findByPath(file.toPath()) ?:
             throw ConfigurationException("Schematic file '$fileName' not found.")

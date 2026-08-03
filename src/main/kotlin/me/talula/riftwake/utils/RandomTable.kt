@@ -50,6 +50,7 @@ class LayerTable {
         }
     }
 
+    val replacementToLayer: Map<BlockType, Layer> field = mutableMapOf<BlockType, Layer>()
     enum class Layer(val replaceBlock: BlockType) {
         LEAVES(BlockTypes.RED_WOOL!!),  // must be at top for non-default leaves to work, otherwise a wood/copy-of-wood entry could set leaves
         WOOD(BlockTypes.ORANGE_WOOL!!),
@@ -88,6 +89,9 @@ class LayerTable {
     )
 
     init {
+        for (layer in Layer.entries)
+            replacementToLayer[layer.replaceBlock] = layer
+
         getTable(Layer.WOOD).add(object : Entry {
             override fun resolve(layer: Layer, results: MutableMap<Layer, BlockState>) {
                 pullConcreteFromTable(Layer.BUILDING_BLOCK).resolve(layer, results)
