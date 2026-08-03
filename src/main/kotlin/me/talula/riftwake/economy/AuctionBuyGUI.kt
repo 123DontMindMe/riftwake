@@ -65,7 +65,7 @@ class AuctionBuyGUI(player: RiftwakePlayer): InventoryGUI(player, 6, "Auction Ho
         private fun updateIcon() {
             val timeElapsed = Riftwake.server.currentTick - auctionItem.timestamp
             if (timeElapsed >= auctionItem.duration) {
-                setItem(createIcon("This item has expired.".red, Material.BARRIER))
+                setIcon(createIcon("This item has expired.".red, Material.BARRIER))
                 return
             }
             val icon = auctionItem.item.clone()
@@ -75,7 +75,7 @@ class AuctionBuyGUI(player: RiftwakePlayer): InventoryGUI(player, 6, "Auction Ho
                 if (player.balance >= auctionItem.cost) "Click to purchase!".yellow.unitalic
                 else "You can't afford this item.".red.unitalic,
             ))
-            setItem(icon)
+            setIcon(icon)
         }
     }
 }

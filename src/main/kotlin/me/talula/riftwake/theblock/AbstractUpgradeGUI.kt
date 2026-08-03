@@ -24,16 +24,16 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
 
     fun updateIcons() {
         for (button in upgradeButtons)
-            button.setItem(button.getIcon())
+            button.setIcon(button.createIcon())
     }
 
     protected inner class UpgradeButton(val upgrade: Upgrade) : Button((5 - upgrade.slotY) * 9 + upgrade.slotX + 4, null) {
         init {
             upgradeButtons.add(this)
-            setItem(getIcon())
+            setIcon(createIcon())
         }
 
-        fun getIcon(): ItemStack {
+        fun createIcon(): ItemStack {
             if (upgrade.dependencies.any { block.isLocked(it) })
                 return emptyIcon
 
@@ -91,7 +91,7 @@ abstract class AbstractUpgradeGUI(player: RiftwakePlayer, numRows: Int, title: C
                     block.enable(upgrade)
                 else
                     block.disable(upgrade)
-                setItem(getIcon())
+                setIcon(createIcon())
                 player.playSound(Sound.UI_BUTTON_CLICK, SoundCategory.UI, 0.8f, 1f)
                 return
             }

@@ -70,7 +70,8 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
 
     abstract inner class Button {
         val index: Int
-        private var item: ItemStack?
+        lateinit var icon: ItemStack
+            private set
         var isHidden: Boolean = false
             private set
 
@@ -78,8 +79,9 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
             this.index = index
             buttons[index] = this
 
-            item = icon
-            inventory.setItem(index, item)
+            if (icon != null)
+                this.icon = icon
+            inventory.setItem(index, icon)
         }
 
         constructor(index: Int, name: Component?, icon: Material, amount: Int, vararg loreLines: String) {
@@ -93,15 +95,11 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
                 meta.lore(Components.loreLines(*loreLines))
             }
             inventory.setItem(index, item)
-            this.item = item
-        }
-
-        fun getItem(): ItemStack? {
-            return item
+            this.icon = item
         }
 
         fun show() {
-            inventory.setItem(index, item)
+            inventory.setItem(index, icon)
             isHidden = false
         }
 
@@ -110,14 +108,14 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
             isHidden = true
         }
 
-        fun setItem(item: ItemStack?) {
-            this.item = item
+        fun setIcon(item: ItemStack) {
+            this.icon = item
             if (!isHidden) inventory.setItem(index, item)
         }
 
-        fun editItem(editor: Consumer<ItemStack?>) {
-            editor.accept(item)
-            if (!isHidden) inventory.setItem(index, item)
+        fun editIcon(editor: Consumer<ItemStack?>) {
+            editor.accept(icon)
+            if (!isHidden) inventory.setItem(index, icon)
         }
 
         abstract fun onClick(event: InventoryClickEvent)
@@ -138,6 +136,26 @@ abstract class InventoryGUI(val player: RiftwakePlayer, numRows: Int, title: Com
     companion object {
         var emptyIcon = createIcon(null, Material.GRAY_STAINED_GLASS_PANE)
         var clearIcon = createIcon(null, Material.LIGHT_GRAY_STAINED_GLASS_PANE)
+
+        fun createIcon(name: Component?, item: ItemStack, amount: Int, vararg lore: Component): ItemStack {
+            val button = item.asQuantity(amount)
+            button.editMeta { meta ->
+                if (name == null)
+                    meta.isHideTooltip = true
+                else
+                    meta.itemName(name)
+                meta.addAttributeModifier(
+                    Attribute.ATTACK_DAMAGE, AttributeModifier(
+                        NamespacedKey("riftwake", "here-to-override-default-modifiers"),
+                        0.0, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.ANY
+                    )
+                )
+                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+                meta.setMaxStackSize(1)
+            }
+            button.lore(listOf(*lore))
+            return button
+        }
 
         fun createIcon(name: Component?, material: Material, amount: Int = 1, glint: Boolean = false): ItemStack {
             val button = ItemStack.of(material, amount)

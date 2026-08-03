@@ -57,10 +57,13 @@ object MapClearRegistry: EventListener() {
     fun clearMap() {
         for (block in blocksToClear)
             block.type = Material.AIR
+
+        if (!Riftwake.instance.isEnabled)
+            return
+
         blocksToClear.clear()
         clearTask.cancel()
-        if (Riftwake.instance.isEnabled)
-            clearTask = createClearTask()
+        clearTask = createClearTask()
 
         Thread {
             val chestTable = Structures.readChestWeights() ?: return@Thread
@@ -178,17 +181,14 @@ object MapClearRegistry: EventListener() {
     fun onBlockPhysics(event: BlockPhysicsEvent) {
         if (event.changedType != Material.WATER && event.changedType != Material.LAVA)
             return
-        println("${event.block.x} ${event.block.y} ${event.block.z} is water")
         val before = event.changedBlockData
         if (before !is Levelled || before.level == 0)  // level of 0 means source
             return
-        println("is not source")
 
         Riftwake.runTaskLater(6) {
             val after = event.block.blockData
             if (after !is Levelled || after.level != 0)
                 return@runTaskLater
-            println("becomes source")
 
             if (isInMapClearRegion(event.block.location))
                 blocksToClear += event.block

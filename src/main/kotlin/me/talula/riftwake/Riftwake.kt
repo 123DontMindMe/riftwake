@@ -20,6 +20,7 @@ import me.talula.riftwake.crates.CratePreviewGUI
 import me.talula.riftwake.crates.CrateRegistry
 import me.talula.riftwake.dialogue.PlaceBlockStage
 import me.talula.riftwake.economy.AuctionRegistry
+import me.talula.riftwake.economy.StoreMenuGUI
 import me.talula.riftwake.economy.StoreSellMenuGUI
 import me.talula.riftwake.islands.Structures
 import me.talula.riftwake.items.Items
@@ -310,9 +311,12 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         )
 
         registerCommand(Commands.literal("sell")
-            .runPlayer { player ->
-                StoreSellMenuGUI(player).open()
+            .runPlayer { player -> StoreSellMenuGUI(player).open()
             }
+        )
+
+        registerCommand(Commands.literal("shop")
+            .runPlayer { player -> StoreMenuGUI(player).open() }
         )
 
         registerCommand(Commands.literal("test")

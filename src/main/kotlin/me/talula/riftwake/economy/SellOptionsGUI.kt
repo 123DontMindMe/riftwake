@@ -48,7 +48,7 @@ class SellOptionsGUI(player: RiftwakePlayer, val item: Material, val price: Int,
         }
 
         override fun updateIcon() {
-            setItem(createIcon(
+            setIcon(createIcon(
                 "x$amount".gold + " for ".gray + "$${amount * price}".gold,
                 item,
                 amount,
@@ -80,7 +80,7 @@ class SellOptionsGUI(player: RiftwakePlayer, val item: Material, val price: Int,
 
         override fun updateIcon() {
             amount = player.inventory.filter { it?.type == item }.sumOf { it.amount }
-            setItem(createIcon(
+            setIcon(createIcon(
                 "ALL (x${amount})".gold + " for ".gray + "$${amount * price}".gold,
                 item,
                 if (amount > 0)
