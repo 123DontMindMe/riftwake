@@ -12,11 +12,10 @@ import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.block.Block
+import org.bukkit.block.data.Levelled
 import org.bukkit.event.EventHandler
-import org.bukkit.event.block.BlockBreakEvent
-import org.bukkit.event.block.BlockPistonExtendEvent
-import org.bukkit.event.block.BlockPistonRetractEvent
-import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.block.*
+import org.bukkit.event.player.PlayerBucketEmptyEvent
 import org.bukkit.scheduler.BukkitTask
 
 object MapClearRegistry: EventListener() {
@@ -56,7 +55,7 @@ object MapClearRegistry: EventListener() {
             block.type = Material.AIR
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onBlockPlace(event: BlockPlaceEvent) {
         if (event.player.gameMode == GameMode.CREATIVE)
             return
@@ -64,7 +63,7 @@ object MapClearRegistry: EventListener() {
             blocksToClear += event.block
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onBlockBreak(event: BlockBreakEvent) {
         if (event.player.gameMode == GameMode.CREATIVE)
             return
@@ -72,7 +71,36 @@ object MapClearRegistry: EventListener() {
             blocksToClear -= event.block
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
+    fun onBucketEmpty(event: PlayerBucketEmptyEvent) {
+        if (event.player.gameMode == GameMode.CREATIVE)
+            return
+        if (isInMapClearRegion(event.block.location))
+            blocksToClear += event.block
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    fun onBlockPhysics(event: BlockPhysicsEvent) {
+        if (event.changedType != Material.WATER && event.changedType != Material.LAVA)
+            return
+        println("${event.block.x} ${event.block.y} ${event.block.z} is water")
+        val before = event.changedBlockData
+        if (before !is Levelled || before.level == 0)  // level of 0 means source
+            return
+        println("is not source")
+
+        Riftwake.runTaskLater(6) {
+            val after = event.block.blockData
+            if (after !is Levelled || after.level != 0)
+                return@runTaskLater
+            println("becomes source")
+
+            if (isInMapClearRegion(event.block.location))
+                blocksToClear += event.block
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
     fun onPistonExtend(event: BlockPistonExtendEvent) {
         for (block in event.blocks) {
             if (block !in blocksToClear) {
@@ -85,7 +113,7 @@ object MapClearRegistry: EventListener() {
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     fun onPistonRetract(event: BlockPistonRetractEvent) {
         for (block in event.blocks) {
             if (block !in blocksToClear) {
