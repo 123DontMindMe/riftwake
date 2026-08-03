@@ -23,6 +23,7 @@ import me.talula.riftwake.economy.AuctionRegistry
 import me.talula.riftwake.economy.StoreSellMenuGUI
 import me.talula.riftwake.islands.Structures
 import me.talula.riftwake.items.Items
+import me.talula.riftwake.spawn.MapClearRegistry
 import me.talula.riftwake.temporaries.BlockCoordDisplay
 import me.talula.riftwake.theblock.PlayerPlacedRegistry
 import me.talula.riftwake.theblock.TheBlockRegistry
@@ -77,6 +78,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         val server get() = instance.server
 
         val playerRegistry: MutableMap<Player, RiftwakePlayer> = HashMap()
+        val listeners = mutableListOf<EventListener>()
 
         fun runTask(task: (BukkitTask) -> Unit) {
             Bukkit.getScheduler().runTask(instance, task)
@@ -135,6 +137,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         luckPerms = LuckPermsProvider.get()
 
         server.pluginManager.registerEvents(this, this)
+        server.pluginManager.registerEvents(MapClearRegistry, this)
         PacketEvents.getAPI().eventManager.registerListener(this, PacketListenerPriority.NORMAL)
 
         runTask {
@@ -335,6 +338,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     override fun onDisable() {
         TheBlockRegistry.save()
         PlayerPlacedRegistry.unregisterAll()
+        for (listener in listeners)
+            listener.onDisable()
     }
 
     @EventHandler
@@ -346,7 +351,6 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
-        logger.info("${event.player.name} quit the game")
         playerRegistry.remove(event.player)
     }
 
@@ -391,7 +395,6 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
 
     @EventHandler
     fun onPlayerInteractEntity(event: PlayerInteractEntityEvent) {
-        componentLogger.info("{}", event.rightClicked)
         playerRegistry[event.player]?.onRightClickEntity(event)
     }
 
@@ -530,7 +533,6 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     override fun onPacketReceive(event: PacketReceiveEvent) {
         if (event.packetType == PacketType.Play.Client.INTERACT_ENTITY) {
             val packet = WrapperPlayClientInteractEntity(event)
-            componentLogger.info("{}", packet.action)
             playerRegistry[event.getPlayer()]?.onInteractPacketEntity(packet)
         }
     }
