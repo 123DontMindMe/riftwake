@@ -16,6 +16,7 @@ import me.talula.riftwake.constants.NumConstant
 import me.talula.riftwake.constants.TimeConstant
 import me.talula.riftwake.utils.*
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.block.Chest
 import org.bukkit.block.CreatureSpawner
@@ -77,12 +78,7 @@ object Structures {
                 val spawnerTable = readSpawnerWeights() ?: return@executes 0
 
                 val layerTable = LayerTable()
-                val structures = try {
-                    Array(11) { readStructure("structures/islandtemplate${it + 1}.schem") }
-                } catch (error: ConfigurationException) {
-                    player.sendMessage(error.message.red)
-                    return@executes 0
-                }
+                val structures = readStructures() ?: return@executes 0
 
                 val worldRadiusInChunks = Math.floorDiv(Math.ceilDiv(worldRadius(), 16), 16) * 16
                 val structurePool = mutableListOf(*structures)
@@ -169,41 +165,42 @@ object Structures {
             )
         }
 
-        for (spawner in structure.spawners) {
-            val state = Riftwake.world.getBlockState(spawner.plus(boundEnd.toVector()))
-            if (state !is CreatureSpawner) {
-                Riftwake.broadcastToOperators("Spawner not found at (${spawner.x()}, ${spawner.y()}, ${spawner.z()})".red)
-                continue
-            }
-            val entityType = spawnerTable.pull()
-            val entitySnapshot = Bukkit.getEntityFactory().createEntitySnapshot("{id:\"${entityType.key}\"}")
-            state.spawnedType = entityType
-            state.minSpawnDelay = minDelay()
-            state.maxSpawnDelay = maxDelay()
-            state.spawnCount = spawnCount()
-            state.maxNearbyEntities = maxNearby()
-            state.delay = initialDelay()
-            state.setSpawnedEntity(SpawnerEntry(entitySnapshot, 1, SpawnRule(0, 15, 0, 15)))
-            state.update()
-        }
+        for (spawner in structure.spawners)
+            placeSpawner(spawner.plus(boundEnd.toVector()), spawnerTable.pull())
 
-        for (chest in structure.chests) {
-            val state = Riftwake.world.getBlockState(chest.plus(boundEnd.toVector()))
-            if (state !is Chest) {
-                Riftwake.broadcastToOperators("Chest not found at (${chest.x()}, ${chest.y()}, ${chest.z()})".red)
-                continue
-            }
-            chestTable.pull().fillInventory(
-                state.inventory,
-                Random(),
-                LootContext.Builder(chest.toLocation(Riftwake.world)).build()
-            )
-        }
+        for (chest in structure.chests)
+            placeChest(chest.plus(boundEnd.toVector()), chestTable.pull())
 
         for (chunk in intersectingChunks)
             Riftwake.world.unloadChunk(chunk)
 
         return structure to to
+    }
+
+    fun placeSpawner(block: Location, type: EntityType) {
+        val state = Riftwake.world.getBlockState(block)
+        if (state !is CreatureSpawner) {
+            Riftwake.broadcastToOperators("Spawner not found at (${block.x()}, ${block.y()}, ${block.z()})".red)
+            return
+        }
+        val entitySnapshot = Bukkit.getEntityFactory().createEntitySnapshot("{id:\"${type.key}\"}")
+        state.spawnedType = type
+        state.minSpawnDelay = minDelay()
+        state.maxSpawnDelay = maxDelay()
+        state.spawnCount = spawnCount()
+        state.maxNearbyEntities = maxNearby()
+        state.delay = initialDelay()
+        state.setSpawnedEntity(SpawnerEntry(entitySnapshot, 1, SpawnRule(0, 15, 0, 15)))
+        state.update()
+    }
+
+    fun placeChest(block: Location, loot: LootTable) {
+        val state = Riftwake.world.getBlockState(block)
+        if (state !is Chest) {
+            Riftwake.broadcastToOperators("Chest not found at (${block.x()}, ${block.y()}, ${block.z()})".red)
+            return
+        }
+        loot.fillInventory(state.inventory, Random(), LootContext.Builder(block).build())
     }
 
     class StructureInfo(val clipboard: Clipboard) {
@@ -229,5 +226,14 @@ object Structures {
         val format = ClipboardFormats.findByPath(file.toPath()) ?:
             throw ConfigurationException("Schematic file '$fileName' not found.")
         return StructureInfo(format.getReader(FileInputStream(file)).read())
+    }
+
+    fun readStructures(): Array<StructureInfo>? {
+        try {
+            return Array(11) { readStructure("structures/islandtemplate${it + 1}.schem") }
+        } catch (error: ConfigurationException) {
+            Riftwake.broadcastToOperators(error.message.red)
+            return null
+        }
     }
 }

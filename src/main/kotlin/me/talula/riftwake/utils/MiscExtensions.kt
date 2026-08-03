@@ -129,7 +129,7 @@ fun Material.toStateType() = StateTypes.getByName(ResourceLocation(name.lowercas
 fun Int.pow(power: Double) = toDouble().pow(power)
 
 fun BlockVector3.toLocation(world: World) = Location(world, x().toDouble(), y().toDouble(), z().toDouble())
-fun BlockVector3.toVector() = Vector(x().toDouble(), y().toDouble(), z().toDouble())
+fun BlockVector3.toVector() = Vector(x(), y(), z())
 
 val Location.blockCoords get() = "$blockX, $blockY, $blockZ"
 
