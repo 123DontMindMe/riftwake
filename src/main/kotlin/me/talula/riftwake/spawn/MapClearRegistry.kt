@@ -33,10 +33,10 @@ object MapClearRegistry: EventListener() {
     private val previousStructures = mutableListOf<Structures.StructureInfo>()
 
     private val islandLocations = arrayOf(
-        BlockVector3(150, 50, 150),
-        BlockVector3(150, 50, -150),
-        BlockVector3(-150, 50, 150),
-        BlockVector3(-150, 50, -150),
+        BlockVector3(160, 50, 160),
+        BlockVector3(160, 50, -160),
+        BlockVector3(-160, 50, 160),
+        BlockVector3(-160, 50, -160),
     )
 
     init {

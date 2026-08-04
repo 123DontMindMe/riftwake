@@ -276,8 +276,6 @@ class CropUpgrade: BlockUpgrade {
         }
 
         theBlock.location.setType(block)
-        for (entity in theBlock.location.toCenterLocation().getNearbyLivingEntities(0.5))
-            entity.location.y = theBlock.block.boundingBox.maxY
 
         val cropLocation = theBlock.location.plus(0, 1, 0)
         if (cropLocation.block.type == Material.AIR)

@@ -4,17 +4,21 @@ import com.destroystokyo.paper.ParticleBuilder
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.constants.IntConstant
+import me.talula.riftwake.constants.NumConstant
 import me.talula.riftwake.constants.TimeConstant
 import me.talula.riftwake.islands.Structures
 import me.talula.riftwake.spawn.SpawnComponent
+import me.talula.riftwake.temporaries.GlowingBlockDisplay
 import me.talula.riftwake.utils.*
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
+import org.bukkit.block.Block
 import org.bukkit.inventory.ItemStack
 import org.bukkit.scheduler.BukkitTask
+import org.bukkit.util.BoundingBox
 import org.bukkit.util.Vector
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -22,6 +26,7 @@ import kotlin.math.floor
 
 class TheBlockComponent(val player: RiftwakePlayer) {
     companion object {
+        val glowDistance = NumConstant("block-glow-distance")
         val teleportCooldown = TimeConstant("rtp.cooldown")
         val minY = IntConstant("rtp.min-y")
         val maxY = IntConstant("rtp.max-y")
@@ -41,7 +46,10 @@ class TheBlockComponent(val player: RiftwakePlayer) {
     private var isTeleporting = false
     private var teleportTask: BukkitTask? = null
 
+    private val glowingBlocks = mutableMapOf<Block, GlowingBlockDisplay>()
+
     init {
+        println("block: " + block?.location)
         player.onPlaceBlock += blockPlace@{ event ->
             if (SpawnComponent.isInSpawn(event.block.location))
                 return@blockPlace
@@ -86,6 +94,7 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         }
 
         player.onBreakBlock += blockBreak@{ event ->
+            Riftwake.runTask { updateGlowingBlocks() }
             val block = TheBlockRegistry[event.block] ?: return@blockBreak
             event.isDropItems = false
             var drops = if (event.block.type == Material.AMETHYST_BLOCK)
@@ -97,12 +106,9 @@ class TheBlockComponent(val player: RiftwakePlayer) {
                 event.block.getDrops(player.inventory.itemInMainHand, player.craftPlayer)
 
             val wasPlayerPlaced = PlayerPlacedRegistry.unregisterBlock(event.block)
-            println("unregistered: " + !wasPlayerPlaced)
             val ourBlock = this.block
             if (!wasPlayerPlaced && ourBlock != null) {
-                println("roll double drop")
                 if (Math.random() < block.doubleDropsChance) {
-                    println("success")
                     val newDrops = mutableListOf<ItemStack>()
                     for (drop in drops) {
                         val amount = drop.amount * 2
@@ -131,7 +137,16 @@ class TheBlockComponent(val player: RiftwakePlayer) {
                     Math.random() * 0.2 - 0.1
                 )
             }
-            Riftwake.runTask { block.spawn() }
+            Riftwake.runTask {
+                block.spawn()
+                println("test")
+                Riftwake.runTask {
+                    for (entity in block.location.toCenterLocation().getNearbyLivingEntities(0.49)) {
+                        println(entity)
+                        entity.teleport(entity.location.apply { y = block.block.boundingBox.maxY })
+                    }
+                }
+            }
         }
         player.onRightClickBlock += rightClick@{ event, block ->
             if (player.isSneaking)
@@ -155,6 +170,8 @@ class TheBlockComponent(val player: RiftwakePlayer) {
                 teleportTask = null
                 player.sendActionBar("Teleport cancelled.".red)
             }
+
+            updateGlowingBlocks()
         }
     }
 
@@ -171,10 +188,12 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         val currentBlock = block
         if (currentBlock != null) {
             currentBlock.location = location
+            updateGlowingBlocks()
             return
         }
         val block = TheBlock(player.uniqueId, location)
         TheBlockRegistry.register(block)
+        updateGlowingBlocks()
     }
 
     // null case is for when there's no block yet
@@ -269,4 +288,20 @@ class TheBlockComponent(val player: RiftwakePlayer) {
     }
 
     private fun randomBetween(min: Int, max: Int) = floor(Math.random() * (max - min) + min)
+
+    private fun updateGlowingBlocks() {
+        val nowVisible = mutableSetOf<Block>()
+        for (chunk in Riftwake.world.getIntersectingChunks(BoundingBox.of(player.location, glowDistance(), glowDistance(), glowDistance())))
+            nowVisible += TheBlockRegistry.blocksByChunk[chunk]
+                .filter { it.block.location.distanceSquared(player.location) < 100 && it.block != player.getTargetBlockExact(5) }
+                .map { it.block }
+        val newlyVisible = nowVisible - glowingBlocks.keys
+        val noLongerVisible = glowingBlocks - nowVisible
+        for ((block, display) in noLongerVisible) {
+            glowingBlocks.remove(block)
+            display.delete()
+        }
+        for (new in newlyVisible)
+            glowingBlocks[new] = GlowingBlockDisplay(player, new.location)
+    }
 }

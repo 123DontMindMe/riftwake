@@ -1,8 +1,12 @@
 package me.talula.riftwake.theblock
 
+import com.google.common.collect.HashMultimap
+import com.google.common.collect.Multimap
 import me.talula.riftwake.Riftwake
+import me.talula.riftwake.theblock.TheBlockRegistry.file
 import me.talula.riftwake.theblock.TreeUpgrade.Companion.random
 import me.talula.riftwake.utils.*
+import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.TreeType
@@ -14,6 +18,7 @@ object TheBlockRegistry {
     val file = Riftwake.Config("blocks.yml")
     val blocksByOwner: MutableMap<UUID, TheBlock> = HashMap()
     val blocksByLocation: MutableMap<Block, TheBlock> = HashMap()
+    val blocksByChunk: Multimap<Chunk, TheBlock> = HashMultimap.create()
 
     init {
         for ((key, data) in file.sections) {
@@ -38,6 +43,7 @@ object TheBlockRegistry {
             throw IllegalArgumentException("Attempted to register block whose owner already has a block")
         blocksByOwner[block.owner] = block
         blocksByLocation[block.block] = block
+        blocksByChunk.put(block.block.chunk, block)
         if (!isFromFile)
             file[block.owner.toString()] = block.serialize()
     }
@@ -121,9 +127,12 @@ class TheBlock {
         set(location) {
             block.location.setType(Material.AIR)
             TheBlockRegistry.blocksByLocation.remove(block)
+            TheBlockRegistry.blocksByChunk.remove(block.chunk, this)
 
             block = Riftwake.world.getBlockAt(location)
             TheBlockRegistry.blocksByLocation[block] = this
+            TheBlockRegistry.blocksByChunk.put(block.chunk, this)
+            file[owner.toString()] = serialize()
             spawnTable.pull().spawn(this)
         }
 
@@ -142,7 +151,7 @@ class TheBlock {
     }
 
     fun serialize(): Map<String, Any> = linkedMapOf(
-        "location" to "${location.x.toInt()}, ${location.y.toInt()}, ${location.z.toInt()}",
+        "location" to "${location.blockX}, ${location.blockY}, ${location.blockZ}",
         "upgrades" to upgradeLevels
     )
 
