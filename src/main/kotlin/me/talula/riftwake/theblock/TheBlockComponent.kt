@@ -23,6 +23,7 @@ import org.bukkit.util.Vector
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import kotlin.math.floor
+import kotlin.math.pow
 
 class TheBlockComponent(val player: RiftwakePlayer) {
     companion object {
@@ -94,8 +95,10 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         }
 
         player.onBreakBlock += blockBreak@{ event ->
-            Riftwake.runTask { updateGlowingBlocks() }
-            val block = TheBlockRegistry[event.block] ?: return@blockBreak
+            val block = TheBlockRegistry[event.block] ?: run {
+                Riftwake.runTask { updateGlowingBlocks() }
+                return@blockBreak
+            }
             event.isDropItems = false
             var drops = if (event.block.type == Material.AMETHYST_BLOCK)
                 listOf(ItemStack.of(Material.AMETHYST_SHARD, 4))
@@ -139,15 +142,14 @@ class TheBlockComponent(val player: RiftwakePlayer) {
             }
             Riftwake.runTask {
                 block.spawn()
-                println("test")
+                updateGlowingBlocks()
                 Riftwake.runTask {
-                    for (entity in block.location.toCenterLocation().getNearbyLivingEntities(0.49)) {
-                        println(entity)
+                    for (entity in block.location.toCenterLocation().getNearbyLivingEntities(0.49))
                         entity.teleport(entity.location.apply { y = block.block.boundingBox.maxY })
-                    }
                 }
             }
         }
+
         player.onRightClickBlock += rightClick@{ event, block ->
             if (player.isSneaking)
                 return@rightClick
@@ -293,7 +295,7 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         val nowVisible = mutableSetOf<Block>()
         for (chunk in Riftwake.world.getIntersectingChunks(BoundingBox.of(player.location, glowDistance(), glowDistance(), glowDistance())))
             nowVisible += TheBlockRegistry.blocksByChunk[chunk]
-                .filter { it.block.location.distanceSquared(player.location) < 100 && it.block != player.getTargetBlockExact(5) }
+                .filter { it.block.location.distanceSquared(player.location) < glowDistance().pow(2) && it.block != player.getTargetBlockExact(5) }
                 .map { it.block }
         val newlyVisible = nowVisible - glowingBlocks.keys
         val noLongerVisible = glowingBlocks - nowVisible
