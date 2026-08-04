@@ -22,6 +22,8 @@ class ItemComponent(val player: RiftwakePlayer) {
                 return@rightClick
             }
             event.isCancelled = true
+            item.subtract()
+
             val egg = player.world.spawnEntity(player.lookLocation(0.2), EntityType.EGG)
             egg.velocity = player.eyeLocation.direction.multiply(1)
             var t = 0
