@@ -23,11 +23,11 @@ import org.bukkit.util.Vector
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import kotlin.math.floor
-import kotlin.math.pow
 
 class TheBlockComponent(val player: RiftwakePlayer) {
     companion object {
-        val glowDistance = NumConstant("block-glow-distance")
+        val glowMinDistance = NumConstant("block-glow.min-distance")
+        val glowMaxDistance = NumConstant("block-glow.max-distance")
         val teleportCooldown = TimeConstant("rtp.cooldown")
         val minY = IntConstant("rtp.min-y")
         val maxY = IntConstant("rtp.max-y")
@@ -293,9 +293,11 @@ class TheBlockComponent(val player: RiftwakePlayer) {
 
     private fun updateGlowingBlocks() {
         val nowVisible = mutableSetOf<Block>()
-        for (chunk in Riftwake.world.getIntersectingChunks(BoundingBox.of(player.location, glowDistance(), glowDistance(), glowDistance())))
+        for (chunk in Riftwake.world.getIntersectingChunks(BoundingBox.of(player.location, glowMaxDistance(), glowMaxDistance(), glowMaxDistance())))
             nowVisible += TheBlockRegistry.blocksByChunk[chunk]
-                .filter { it.block.location.distanceSquared(player.location) < glowDistance().pow(2) && it.block != player.getTargetBlockExact(5) }
+                .filter {
+                    it.block.location.toCenterLocation().distanceSquared(player.location) in glowMinDistance.pow(2)..glowMaxDistance.pow(2) &&
+                    it.block != player.getTargetBlockExact(5) }
                 .map { it.block }
         val newlyVisible = nowVisible - glowingBlocks.keys
         val noLongerVisible = glowingBlocks - nowVisible
