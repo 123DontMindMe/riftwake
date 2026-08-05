@@ -61,13 +61,13 @@ object MapClearRegistry: EventListener() {
 
                 var done = 0
                 for (center in islandLocations) {
-                    var y = 0
+                    var y = height
                     Riftwake.runTaskTimer(0, 1) { task ->
                         val min = center.add(-widthX / 2, y, -widthZ / 2)
                         val max = center.add(widthX / 2, y, widthZ / 2)
                         Riftwake.world.edit { it.setBlocks(CuboidRegion(min, max), BlockTypes.AIR!!.defaultState) }
-                        y++
-                        if (y >= height) {
+                        y--
+                        if (min.y() < -64) {
                             task.cancel()
                             done++
                             if (done == 4)
