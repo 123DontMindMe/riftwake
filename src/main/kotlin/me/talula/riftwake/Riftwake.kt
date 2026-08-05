@@ -272,7 +272,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         )
 
         registerCommand(Commands.literal("balance")
-            .replyPlayer { player -> "Your current balance is $${player.balance}.".green }
+            .replyPlayer { player -> "Your current balance is ".gray + "$${player.balance}".gold + ".".gray }
             .then(Commands.literal("add")
                 .requires { it.sender.isOp }
                 .then(Commands.argument("amount", LongArgumentType.longArg())
