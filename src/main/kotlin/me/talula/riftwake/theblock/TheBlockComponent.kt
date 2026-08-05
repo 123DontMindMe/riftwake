@@ -1,6 +1,7 @@
 package me.talula.riftwake.theblock
 
 import com.destroystokyo.paper.ParticleBuilder
+import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.constants.IntConstant
@@ -8,6 +9,7 @@ import me.talula.riftwake.constants.NumConstant
 import me.talula.riftwake.constants.TimeConstant
 import me.talula.riftwake.islands.Structures
 import me.talula.riftwake.spawn.SpawnComponent
+import me.talula.riftwake.temporaries.BlockCoordDisplay
 import me.talula.riftwake.temporaries.GlowingBlockDisplay
 import me.talula.riftwake.utils.*
 import org.bukkit.Location
@@ -35,6 +37,40 @@ class TheBlockComponent(val player: RiftwakePlayer) {
         val minFromBorder = IntConstant("rtp.min-from-border")
 
         val lastRtpTick = mutableMapOf<UUID, Int>()
+
+        val exampleLocation = Location(Riftwake.world, 12.0, 100.0, 5.0)
+        val exampleTable = RandomTable<Material>().apply {
+            add(Material.DIRT, 70.0)
+            add(Material.OAK_LOG, 30.0)
+            add(Material.BIRCH_LOG, 10.0)
+            add(Material.SPRUCE_LOG, 10.0)
+            add(Material.ACACIA_LOG, 10.0)
+            add(Material.CHERRY_LOG, 10.0)
+            add(Material.PALE_OAK_LOG, 10.0)
+            add(Material.WARPED_STEM, 5.0)
+            add(Material.CRIMSON_STEM, 5.0)
+            add(Material.STONE, 10.0)
+            add(Material.ANDESITE, 10.0)
+            add(Material.DIORITE, 10.0)
+            add(Material.GRANITE, 10.0)
+            add(Material.ANDESITE, 10.0)
+            add(Material.FARMLAND, 10.0)
+            add(Material.COAL_ORE, 5.0)
+            add(Material.IRON_ORE, 5.0)
+            add(Material.DIAMOND_ORE, 5.0)
+            add(Material.GOLD_ORE, 5.0)
+            add(Material.EMERALD_ORE, 5.0)
+            add(Material.OBSIDIAN, 10.0)
+            add(Material.AMETHYST_BLOCK, 5.0)
+            add(Material.END_STONE, 5.0)
+            add(Material.SCULK, 5.0)
+            add(Material.NETHERRACK, 5.0)
+            add(Material.BLACKSTONE, 5.0)
+            add(Material.DEEPSLATE, 5.0)
+            add(Material.SAND, 5.0)
+            add(Material.SOUL_SAND, 5.0)
+            add(Material.GRAVEL, 5.0)
+        }
     }
 
     val block get() = TheBlockRegistry.blocksByOwner[player.uniqueId]
@@ -50,7 +86,12 @@ class TheBlockComponent(val player: RiftwakePlayer) {
     private val glowingBlocks = mutableMapOf<Block, GlowingBlockDisplay>()
 
     init {
-        println("block: " + block?.location)
+        val exampleDisplay = BlockCoordDisplay(player, StateTypes.DIRT!!, exampleLocation)
+        Riftwake.runTaskTimer(10, 10) {
+            exampleDisplay.material = { exampleTable.pull().toStateType() } until { it != exampleDisplay.material }
+        }
+        GlowingBlockDisplay(player, exampleLocation)
+
         player.onPlaceBlock += blockPlace@{ event ->
             if (SpawnComponent.isInSpawn(event.block.location))
                 return@blockPlace
