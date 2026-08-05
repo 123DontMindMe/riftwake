@@ -62,15 +62,19 @@ class StoreBuyMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Shop » 
             player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
         }
         SimpleButton(x=3, y=1, createIcon("PvP".gold, Material.DIAMOND_SWORD)) {
-            StoreBuyGUI(player, "PvP", 3, pvp).open()
+            StoreBuyGUI(player, "PvP", 5, pvp).open()
             player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
         }
         SimpleButton(x=5, y=1, createIcon("Miscellaneous".gold, Material.BLUE_HARNESS)) {
-            StoreBuyGUI(player, "Miscellaneous", 3, misc).open()
+            StoreBuyGUI(player, "Miscellaneous", 5, misc).open()
             player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
         }
         SimpleButton(x=7, y=1, createIcon("Food".gold, Material.GOLDEN_CARROT)) {
-            StoreBuyGUI(player, "Food", 6, food).open()
+            StoreBuyGUI(player, "Food", 3, food).open()
+            player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
+        }
+        SimpleButton(x=4, y=2, createIcon("Back".yellow, Material.ARROW)) {
+            StoreMenuGUI(player).open()
             player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
         }
         fillEmpty()
@@ -86,7 +90,7 @@ class StoreBuyGUI(player: RiftwakePlayer, val name: String, numRows: Int, items:
         for (item in items)
             BuyButton(item.index, item.item, item.price)
         SimpleButton((numRows - 1) * 9, createIcon("Back".yellow, Material.ARROW)) {
-            StoreSellMenuGUI(player).open()
+            StoreBuyMenuGUI(player).open()
             player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
         }
         fillEmpty()

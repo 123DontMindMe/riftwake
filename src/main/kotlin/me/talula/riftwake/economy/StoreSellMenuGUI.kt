@@ -58,6 +58,10 @@ class StoreSellMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Shop »
             StoreSellGUI(player, "Mob Drops", 6, mobDrops).open()
             player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
         }
+        SimpleButton(x=4, y=2, createIcon("Back".yellow, Material.ARROW)) {
+            StoreMenuGUI(player).open()
+            player.playSound(Sound.ITEM_BOOK_PAGE_TURN, SoundCategory.UI, 1f, 1f)
+        }
         fillEmpty()
     }
 }
