@@ -8,6 +8,10 @@ import me.talula.riftwake.RiftwakePlayer
 import net.kyori.adventure.text.Component
 import org.bukkit.command.CommandSender
 
+object Command {
+    fun fail(message: Component? = null): Nothing = throw CommandFail(message)
+}
+
 inline fun LiteralArgumentBuilder<CommandSourceStack>.replySender(
     crossinline command: (CommandSender) -> Component
 ): LiteralArgumentBuilder<CommandSourceStack> {
@@ -16,7 +20,8 @@ inline fun LiteralArgumentBuilder<CommandSourceStack>.replySender(
             ctx.source.sender.sendMessage(command(ctx.source.sender))
             return@executes 1
         } catch (error: CommandFail) {
-            ctx.source.sender.sendMessage(error.error.red)
+            if (error.error != null)
+                ctx.source.sender.sendMessage(error.error.red)
             return@executes 0
         }
     }
@@ -31,7 +36,8 @@ inline fun LiteralArgumentBuilder<CommandSourceStack>.runPlayer(
             command(player)
             return@executes 1
         } catch (error: CommandFail) {
-            player.sendMessage(error.error.red)
+            if (error.error != null)
+                player.sendMessage(error.error.red)
             return@executes 0
         }
     }
@@ -46,7 +52,8 @@ inline fun LiteralArgumentBuilder<CommandSourceStack>.replyPlayer(
             command(player)?.let { player.sendMessage(it) }
             return@executes 1
         } catch (error: CommandFail) {
-            player.sendMessage(error.error.red)
+            if (error.error != null)
+                player.sendMessage(error.error.red)
             return@executes 0
         }
     }
@@ -61,7 +68,8 @@ inline fun <T> RequiredArgumentBuilder<CommandSourceStack, T>.runPlayer(
             command(ctx, player)
             return@executes 1
         } catch (error: CommandFail) {
-            player.sendMessage(error.error.red)
+            if (error.error != null)
+                player.sendMessage(error.error.red)
             return@executes 0
         }
     }
@@ -76,7 +84,8 @@ inline fun <T> RequiredArgumentBuilder<CommandSourceStack, T>.replyPlayer(
             command(ctx, player)?.let { player.sendMessage(it) }
             return@executes 1
         } catch (error: CommandFail) {
-            player.sendMessage(error.error.red)
+            if (error.error != null)
+                player.sendMessage(error.error.red)
             return@executes 0
         }
     }

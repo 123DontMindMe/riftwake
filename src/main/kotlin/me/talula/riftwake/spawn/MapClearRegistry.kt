@@ -1,12 +1,14 @@
 package me.talula.riftwake.spawn
 
 import com.sk89q.worldedit.math.BlockVector3
+import com.sk89q.worldedit.regions.CuboidRegion
 import com.sk89q.worldedit.world.block.BlockTypes
 import io.papermc.paper.command.brigadier.Commands
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.constants.IntConstant
 import me.talula.riftwake.constants.TimeConstant
 import me.talula.riftwake.islands.Structures
+import me.talula.riftwake.utils.Command
 import me.talula.riftwake.utils.EventListener
 import me.talula.riftwake.utils.LayerTable
 import me.talula.riftwake.utils.edit
@@ -28,7 +30,7 @@ object MapClearRegistry: EventListener() {
     val radius = IntConstant("map-clear.radius")
     val interval = TimeConstant("map-clear.interval")
 
-    private val blocksToClear = mutableSetOf<Block>()
+    val blocksToClear = mutableSetOf<Block>()
     private var clearTask = createClearTask()
     private val previousStructures = mutableListOf<Structures.StructureInfo>()
 
@@ -46,6 +48,34 @@ object MapClearRegistry: EventListener() {
                 sender.sendMessage("Clearing map... (${blocksToClear.size} blocks)".yellow)
                 clearMap()
                 "Map cleared.".green
+            }
+        )
+
+        Riftwake.registerCommand(Commands.literal("clear-islands")
+            .requires { it.sender.isOp }
+            .replySender { sender ->
+                val structures = Structures.readStructures() ?: Command.fail()
+                val widthX = structures.maxOf { it.widthX }
+                val height = structures.maxOf { it.height }
+                val widthZ = structures.maxOf { it.widthZ }
+
+                var done = 0
+                for (center in islandLocations) {
+                    var y = 0
+                    Riftwake.runTaskTimer(0, 1) { task ->
+                        val min = center.add(-widthX / 2, y, -widthZ / 2)
+                        val max = center.add(widthX / 2, y, widthZ / 2)
+                        Riftwake.world.edit { it.setBlocks(CuboidRegion(min, max), BlockTypes.AIR!!.defaultState) }
+                        y++
+                        if (y >= height) {
+                            task.cancel()
+                            done++
+                            if (done == 4)
+                                sender.sendMessage("Islands cleared".green)
+                        }
+                    }
+                }
+                "Clearing islands...".yellow
             }
         )
     }
@@ -221,7 +251,7 @@ object MapClearRegistry: EventListener() {
         }
     }
 
-    private fun isInMapClearRegion(location: Location): Boolean {
+    fun isInMapClearRegion(location: Location): Boolean {
         return location.blockX in -radius()..radius() &&
                 location.blockZ in -radius()..radius() &&
                 !SpawnComponent.isInSpawn(location)

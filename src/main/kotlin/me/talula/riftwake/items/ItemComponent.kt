@@ -3,6 +3,7 @@ package me.talula.riftwake.items
 import me.talula.riftwake.Riftwake.Companion.runTaskTimer
 import me.talula.riftwake.Riftwake.Companion.world
 import me.talula.riftwake.RiftwakePlayer
+import me.talula.riftwake.spawn.MapClearRegistry
 import me.talula.riftwake.spawn.SpawnComponent
 import me.talula.riftwake.utils.getStringData
 import me.talula.riftwake.utils.lookLocation
@@ -38,6 +39,8 @@ class ItemComponent(val player: RiftwakePlayer) {
                 if (world.getType(location) != Material.AIR)
                     return@runTaskTimer
                 world.setType(location, Material.DIRT)
+                if (MapClearRegistry.isInMapClearRegion(location))
+                    MapClearRegistry.blocksToClear += location.block
             }
         }
     }
