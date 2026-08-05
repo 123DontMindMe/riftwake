@@ -16,6 +16,7 @@ import me.talula.riftwake.utils.luckPermsUser
 import me.talula.riftwake.utils.sendPacket
 import me.talula.riftwake.utils.setOfflineBalance
 import net.kyori.adventure.text.Component
+import org.bukkit.attribute.Attribute
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
@@ -84,4 +85,5 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     }
 
     val itemHeld get() = craftPlayer.inventory.itemInMainHand.takeUnless { it.isEmpty }
+    val maxHp get() = craftPlayer.getAttribute(Attribute.MAX_HEALTH)!!.value
 }

@@ -310,28 +310,12 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             }
         )
 
-        registerCommand(Commands.literal("sell")
-            .runPlayer { player -> StoreSellMenuGUI(player).open()
-            }
-        )
+        registerCommand(Commands.literal("sell").runPlayer { StoreSellMenuGUI(it).open() })
+        registerCommand(Commands.literal("shop").runPlayer { StoreMenuGUI(it).open() })
 
-        registerCommand(Commands.literal("shop")
-            .runPlayer { player -> StoreMenuGUI(player).open() }
-        )
-
-        registerCommand(Commands.literal("test")
-            .runPlayer { player ->
-                player.balance += 1
-//                player.getOfflineBalance().thenAcceptAsync { balance ->
-//                    println("(1) got " + balance)
-//                    player.setOfflineBalance(balance + 1)
-//                }
-                player.getOfflineBalance().thenAcceptAsync { balance ->
-                    println("(2) got " + balance)
-                    player.setOfflineBalance(balance + 1)
-                }
-            }
-        )
+        registerCommand(Commands.literal("heal")
+            .requires { it.sender.isOp }
+            .replyPlayer { it.heal(it.maxHp); it.foodLevel = 20; it.saturation = 20f; "Healed.".green })
 
         Constant.init()
         AuctionRegistry.init()
