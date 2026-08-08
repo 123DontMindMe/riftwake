@@ -1,7 +1,5 @@
 package me.talula.riftwake.utils
 
-import com.github.retrooper.packetevents.protocol.component.ComponentTypes
-import com.github.retrooper.packetevents.protocol.component.builtin.item.ItemRarity
 import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes
 import com.github.retrooper.packetevents.resources.ResourceLocation
 import com.sk89q.worldedit.EditSession
@@ -11,18 +9,18 @@ import com.sk89q.worldedit.math.BlockVector3
 import com.sk89q.worldedit.util.SideEffectSet
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextColor
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
+import org.bukkit.block.Block
 import org.bukkit.block.data.BlockData
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.util.Vector
 import java.util.*
-import kotlin.jvm.optionals.getOrDefault
 import kotlin.math.pow
+
+val Block.isAir: Boolean get() = type == Material.AIR || type == Material.CAVE_AIR || type == Material.VOID_AIR
 
 inline infix fun <T> (() -> T).until(predicate: (T) -> Boolean): T {
     var result = this()
@@ -32,36 +30,16 @@ inline infix fun <T> (() -> T).until(predicate: (T) -> Boolean): T {
 }
 
 val ItemStack.nameWithAmount: Component get() {
-    val name = if (itemMeta.hasItemName())
-        itemMeta.itemName()
-    else
-        Component.translatable(this)
     return if (maxStackSize == 1)
-        name
+        effectiveName().noColor
     else
-        name + " x$amount".comp()
+        effectiveName().noColor + " x$amount".comp()
 }
 
 val ItemStack.hoverableStack: Component get() {
     val meta = itemMeta
-    val name: Component
-    val color: TextColor
-    if (meta.hasItemName()) {
-        name = meta.itemName()
-        color = meta.itemName().firstColor
-    } else {
-        name = Component.translatable(this)
-        val rarity = forPacket  // meta.rarity STILL doesn't work
-            .getComponent(ComponentTypes.RARITY)
-            .getOrDefault(ItemRarity.COMMON)
-            .name
-        color = when (rarity) {
-            "UNCOMMON" -> NamedTextColor.YELLOW
-            "RARE" -> NamedTextColor.AQUA
-            "EPIC" -> NamedTextColor.LIGHT_PURPLE
-            else -> NamedTextColor.WHITE
-        }
-    }
+    val name = effectiveName()
+    val color = name.firstColor
 
     val formattedName = if (maxStackSize == 1)
         "[".color(color) + name + "]".color(color)
@@ -164,5 +142,12 @@ fun Vector.plus(x: Double, y: Double, z: Double): Vector {
     result.x += x
     result.y += y
     result.z += z
+    return result
+}
+fun Vector.times(scalar: Int): Vector {
+    val result = this.clone()
+    result.x *= scalar
+    result.y *= scalar
+    result.z *= scalar
     return result
 }

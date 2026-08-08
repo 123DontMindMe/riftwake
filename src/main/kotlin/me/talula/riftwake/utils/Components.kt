@@ -520,3 +520,7 @@ val Component.firstColor: TextColor get() {
         return NamedTextColor.GRAY
     return children.first().firstColor
 }
+
+val Component.noColor: Component get() {
+    return toBuilder().applyDeep { it.color(null) }.build()
+}

@@ -2,7 +2,6 @@ package me.talula.riftwake.economy
 
 import me.talula.riftwake.RiftwakePlayer
 import me.talula.riftwake.utils.*
-import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
@@ -38,7 +37,7 @@ class AuctionConfirmSellGUI(player: RiftwakePlayer, val sellItem: ItemStack, val
                 player.inventory.setItem(index, null)
                 AuctionRegistry.items += AuctionItem(player, sellItem, cost, AuctionRegistry.sellDuration())
                 close()
-                player.sendMessage(Component.translatable(sellItem) + " put up for auction for $$cost.".green)
+                player.sendMessage(sellItem.hoverableStack + " put up for auction for $$cost.".green)
                 player.playSound(Sound.BLOCK_NOTE_BLOCK_HARP, SoundCategory.UI, 1f, 2f)
             }
             8 -> {

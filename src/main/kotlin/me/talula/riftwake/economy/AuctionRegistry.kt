@@ -6,7 +6,6 @@ import me.talula.riftwake.Riftwake
 import me.talula.riftwake.constants.IntConstant
 import me.talula.riftwake.constants.TimeConstant
 import me.talula.riftwake.utils.*
-import net.kyori.adventure.text.Component
 import org.bukkit.OfflinePlayer
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
@@ -46,7 +45,7 @@ class AuctionItem(val owner: OfflinePlayer, val item: ItemStack, val cost: Long,
         Riftwake.runTaskLater(duration.toLong()) {
             AuctionRegistry.items.remove(this)
             val player = owner.riftwake ?: return@runTaskLater
-            player.sendMessage("Your auction item " + Component.translatable(item) + " has expired.".yellow)
+            player.sendMessage("Your auction item " + item.effectiveName() + " has expired.".yellow)
             player.playSound(Sound.BLOCK_NOTE_BLOCK_BELL, SoundCategory.MASTER, 2f, 1f)
         }
     }

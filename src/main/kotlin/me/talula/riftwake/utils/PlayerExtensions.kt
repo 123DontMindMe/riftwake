@@ -57,6 +57,13 @@ fun <P: Any, C: Any> PersistentDataViewHolder.getData(key: String, type: Persist
     return persistentDataContainer.get(NamespacedKey("riftwake", key), type)
 }
 
+val PersistentDataViewHolder.itemId: String?
+    get() = persistentDataContainer.get(NamespacedKey("riftwake", "item-id"), PersistentDataType.STRING)
+
+var PersistentDataHolder.itemId: String?
+    get() = persistentDataContainer.get(NamespacedKey("riftwake", "item-id"), PersistentDataType.STRING)
+    set(id) { setData("item-id", PersistentDataType.STRING, id) }
+
 fun PersistentDataViewHolder.getStringData(key: String): String? {
     return persistentDataContainer.get(NamespacedKey("riftwake", key), PersistentDataType.STRING)
 }

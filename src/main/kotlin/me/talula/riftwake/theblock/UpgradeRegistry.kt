@@ -175,7 +175,7 @@ open class BlockUpgrade: Upgrade, Spawnable {
             when (block) {
                 Material.SCULK -> {
                     val location = theBlock.location.plus(0, 1, 0)
-                    if (location.block.isEmpty)
+                    if (location.block.isAir)
                         location.setType(listOf(
                             Material.SCULK_VEIN, Material.SCULK_SENSOR,
                             Material.SCULK_CATALYST, Material.SCULK_SHRIEKER
@@ -185,7 +185,7 @@ open class BlockUpgrade: Upgrade, Spawnable {
                     theBlock.location.setType(Material.BUDDING_AMETHYST)
                     for (direction in listOf(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN)) {
                         val location = theBlock.location.plus(direction.direction)
-                        if (location.block.isEmpty) {
+                        if (location.block.isAir) {
                             location.setBlock(Material.SMALL_AMETHYST_BUD.createBlockData { data ->
                                 (data as Directional).facing = direction
                             })
@@ -237,7 +237,7 @@ class CropUpgrade: BlockUpgrade {
                     theBlock.location.setType(Material.SAND)
                     for (y in 1..random.nextInt(3, 5)) {
                         val location = theBlock.location.plus(0, y, 0)
-                        if (location.block.isEmpty)
+                        if (location.block.isAir)
                             location.setType(Material.SUGAR_CANE)
                         else break
                     }
@@ -246,7 +246,7 @@ class CropUpgrade: BlockUpgrade {
                     theBlock.location.setType(Material.PODZOL)
                     for (y in 1..random.nextInt(5, 10)) {
                         val location = theBlock.location.plus(0, y, 0)
-                        if (location.block.isEmpty)
+                        if (location.block.isAir)
                             location.setType(Material.BAMBOO)
                         else break
                     }
@@ -255,7 +255,7 @@ class CropUpgrade: BlockUpgrade {
                     theBlock.location.setType(Material.STONE)
                     for (y in 1..random.nextInt(3, 5)) {
                         val location = theBlock.location.plus(0, -y, 0)
-                        if (location.block.isEmpty)
+                        if (location.block.isAir)
                             location.setBlock(crop)
                         else break
                     }
@@ -264,7 +264,7 @@ class CropUpgrade: BlockUpgrade {
                     theBlock.location.setType(Material.SAND)
                     for (y in 1..random.nextInt(3, 5)) {
                         val location = theBlock.location.plus(0, y, 0)
-                        if (location.block.isEmpty)
+                        if (location.block.isAir)
                             location.setType(Material.CACTUS)
                         else break
                     }
@@ -278,7 +278,7 @@ class CropUpgrade: BlockUpgrade {
         theBlock.location.setType(block)
 
         val cropLocation = theBlock.location.plus(0, 1, 0)
-        if (cropLocation.block.type == Material.AIR)
+        if (cropLocation.block.isAir)
             cropLocation.setBlock(crops.random())
     }
 }

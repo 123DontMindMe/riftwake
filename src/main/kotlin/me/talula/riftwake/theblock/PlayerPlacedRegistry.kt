@@ -4,7 +4,6 @@ import me.talula.riftwake.Riftwake
 import me.talula.riftwake.utils.getData
 import me.talula.riftwake.utils.setData
 import org.bukkit.Chunk
-import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.persistence.PersistentDataType
 
@@ -39,7 +38,7 @@ object PlayerPlacedRegistry {
         for (block in blocks) {
             // don't bother saving "player-placed" blocks that are actually just empty since
             // they're just false positives (which is fine, it's too hard to keep track of all of them)
-            if (block.type == Material.AIR)
+            if (block.type.isAir)
                 continue
             array[i * 3] = block.x - (chunk.x * 16)
             array[i * 3 + 1] = block.y
@@ -75,15 +74,16 @@ object PlayerPlacedRegistry {
             val array = IntArray(blocks.size * 3)
             var i = 0
             for (block in blocks) {
-                if (block.type == Material.AIR)
+                if (block.type.isAir)
                     continue
                 array[i * 3] = block.x - (chunk.x * 16)
                 array[i * 3 + 1] = block.y
                 array[i * 3 + 2] = block.z - (chunk.z * 16)
                 i++
             }
-            chunk.setData("player-placed-blocks", PersistentDataType.INTEGER_ARRAY, array.sliceArray(0 until i * 3))
-            println("saved " + array.contentToString())
+            val saved = array.sliceArray(0 until i * 3)
+            chunk.setData("player-placed-blocks", PersistentDataType.INTEGER_ARRAY, saved)
+            println("saved " + saved.contentToString())
         }
         map.clear()
     }

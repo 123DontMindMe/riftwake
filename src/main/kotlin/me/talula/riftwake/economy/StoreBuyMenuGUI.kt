@@ -2,18 +2,8 @@ package me.talula.riftwake.economy
 
 import me.talula.riftwake.Riftwake
 import me.talula.riftwake.RiftwakePlayer
-import me.talula.riftwake.utils.InventoryGUI
-import me.talula.riftwake.utils.comp
-import me.talula.riftwake.utils.gold
-import me.talula.riftwake.utils.gray
-import me.talula.riftwake.utils.green
-import me.talula.riftwake.utils.hoverableStack
-import me.talula.riftwake.utils.playSound
-import me.talula.riftwake.utils.plus
-import me.talula.riftwake.utils.red
-import me.talula.riftwake.utils.unitalic
-import me.talula.riftwake.utils.yellow
-import net.kyori.adventure.text.Component
+import me.talula.riftwake.items.Items
+import me.talula.riftwake.utils.*
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.SoundCategory
@@ -32,25 +22,34 @@ class StoreBuyMenuGUI(player: RiftwakePlayer): InventoryGUI(player, 3, "Shop » 
         fun readFile(filePath: String): List<BuyItemInfo> {
             val info = mutableListOf<BuyItemInfo>()
             for (line in Riftwake.getFile(filePath).readLines()) {
-                try {
-                    val (first, second, third) = line.split(" ")
-                    val index = first.trim().toInt()
-                    val item = try {
-                        ItemStack.of(Material.valueOf(second.trim()))
-                    } catch (_: IllegalArgumentException) {
+                val (first, second, third) = line.split(" ").takeIf { it.size == 3 } ?: run {
+                    Riftwake.broadcastToOperators("Invalid entry in $filePath: '$line', expected slot, item, and price".red)
+                    continue
+                }
+                val index = try { first.trim().toInt() } catch (_: NumberFormatException) {
+                    Riftwake.broadcastToOperators("Invalid entry in $filePath: '$line', invalid slot".red)
+                    continue
+                }
+                val itemName = second.trim()
+                val item = try {
+                    ItemStack.of(Material.valueOf(itemName))
+                } catch (_: IllegalArgumentException) {
+                    try {
                         val item = ItemStack.of(Material.SPLASH_POTION)
                         item.editMeta {
                             check(it is PotionMeta)
-                            it.basePotionType = PotionType.valueOf(second.trim())
+                            it.basePotionType = PotionType.valueOf(itemName)
                         }
                         item
+                    } catch (_: IllegalArgumentException) {
+                        Items.fromId(itemName) ?: run {
+                            Riftwake.broadcastToOperators("Invalid entry in $filePath: '$line', unknown item '$itemName'".red)
+                            continue
+                        }
                     }
-                    val price = third.trim().toInt()
-                    info += BuyItemInfo(index, item, price)
-                } catch (error: Throwable) {
-                    Riftwake.broadcastToOperators("Invalid entry in $filePath: '$line', ${error.message}".red)
-                    continue
                 }
+                val price = third.trim().toInt()
+                info += BuyItemInfo(index, item, price)
             }
             return info
         }
@@ -97,7 +96,7 @@ class StoreBuyGUI(player: RiftwakePlayer, val name: String, numRows: Int, items:
     }
 
     inner class BuyButton(index: Int, val item: ItemStack, val price: Int):
-        Button(index, createIcon(Component.translatable(item), item, 1,
+        Button(index, createIcon(item.effectiveName(), item, 1,
             ("Costs for ".gray + "$$price".gold + " per item".gray).unitalic,
             "".comp(),
             ("Left-click".yellow + " to buy ".gray + "1".gold).unitalic,

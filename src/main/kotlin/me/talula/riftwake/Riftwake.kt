@@ -258,8 +258,6 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             }
         )
 
-        registerCommand(Commands.literal("egg").runPlayer { player -> player.give(Items.createBridgeEgg()) })
-
         registerCommand(Commands.literal("spawn")
             .runPlayer { player ->
                 player.craft.teleportAsync(Location(world, 0.0, 100.0, 0.0)).thenAccept { success ->
@@ -321,6 +319,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
         AuctionRegistry.init()
         Structures.init()
         CrateRegistry.init()
+        Items.init()
     }
 
     override fun onDisable() {
@@ -393,8 +392,17 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             player.onPhysicalInteract(event)
             return
         }
-        if (!event.action.isRightClick)
+        if (event.action.isLeftClick) {
+            println("action: " + event.action)
+            if (player.didSendArmSwing) {
+                println("left click")
+                player.onLeftClick(event)
+                player.didSendArmSwing = false
+            }
             return
+        }
+        println("right click action: " + event.action)
+        player.didSendArmSwing = false
 
         val clickedBlock = event.clickedBlock
         val item = event.item
@@ -490,7 +498,7 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
     fun onBlockFall(event: EntityChangeBlockEvent) {
         if (event.block !in TheBlockRegistry)
             return
-        if (event.entityType == EntityType.FALLING_BLOCK && event.to == Material.AIR) {
+        if (event.entityType == EntityType.FALLING_BLOCK && event.to.isAir) {
             event.isCancelled = true
             // Update the block to fix a visual client bug, but don't apply physics
             event.block.state.update(false, false)
@@ -523,6 +531,8 @@ class Riftwake : JavaPlugin(), Listener, PacketListener {
             val packet = WrapperPlayClientInteractEntity(event)
             playerRegistry[event.getPlayer()]?.onInteractPacketEntity(packet)
         }
+        else if (event.packetType == PacketType.Play.Client.ANIMATION)
+            playerRegistry[event.getPlayer()]?.didSendArmSwing = true
     }
 
     val Material.takesInteractPriority: Boolean get() {

@@ -41,6 +41,7 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val onInteractPacketEntity = Event<WrapperPlayClientInteractEntity>()
     val onRightClickBlock = BiEvent<PlayerInteractEvent, Block>()
     val onRightClickItem = BiEvent<PlayerInteractEvent, ItemStack>()
+    val onLeftClick = Event<PlayerInteractEvent>()
     val onSendMessage = Event<AsyncChatEvent>()
     val onToggleSneak = Event<PlayerToggleSneakEvent>()
     val onBreakBlock = Event<BlockBreakEvent>()
@@ -60,6 +61,8 @@ class RiftwakePlayer(val craftPlayer: Player): Player by craftPlayer {
     val items = ItemComponent(this)
     val combat = CombatComponent(this)
     val crate = CrateComponent(this)
+
+    var didSendArmSwing = false
 
     var balance: Long = luckPermsUser.cachedData.metaData.getMetaValue("balance", String::toLong).getOrDefault(0L)
         set(value) {
